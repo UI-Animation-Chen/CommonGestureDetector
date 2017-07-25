@@ -56,10 +56,7 @@ public class MainActivity extends AppCompatActivity {
             }
 
             @Override
-            public void onUp(float upX, float upY, long upTime, long lastDeltaMilliseconds,
-                             float xVelocity, float yVelocity, float rotatedVelocity, float scaledVelocity) {
-
-            }
+            public void onUp(float upX, float upY, long upTime, float xVelocity, float yVelocity) {}
 
             @Override
             public void onCancel() {}
