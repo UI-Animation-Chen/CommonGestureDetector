@@ -60,6 +60,9 @@ public class MainActivity extends AppCompatActivity {
                              float xVelocity, float yVelocity, float rotatedVelocity, float scaledVelocity) {
 
             }
+
+            @Override
+            public void onCancel() {}
         });
 
 
