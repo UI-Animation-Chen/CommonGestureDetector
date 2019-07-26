@@ -15,9 +15,10 @@ public class TwoFingersGestureDetector {
     private float oldX = 0f;
     private float oldY = 0f;
 
-    // 如果在连续两次MOVE事件中，转动的角度超过180度，这次转动效果或完全被忽略或小于实际角度。但这几乎是不可能的。
+    // 如果在连续两次MOVE事件中转动穿过了左侧-180到180，那么这次转动效果或按0度算，或小于实际角度。
+    // 但连续两次move事件超过180度几乎是不可能的。
     private static final float MAX_DEGREES_IN_TWO_MOVE_EVENTS = 180f;
-    private static final float REFERENCE_DEGREES = 360f - MAX_DEGREES_IN_TWO_MOVE_EVENTS;
+    private static final float REFERENCE_DEGREES = 360f - MAX_DEGREES_IN_TWO_MOVE_EVENTS; // 权衡为180
     private static final float RADIAN_TO_DEGREE = (float) (180.0 / Math.PI);
     private float oldTanDeg = 0f;
 
@@ -134,16 +135,33 @@ public class TwoFingersGestureDetector {
         return true;
     }
 
+    /**
+     * Math.atan2(x, y): 左侧的-180和180交界需要额外处理，其余区域都是连续的。
+     *
+     *              | y
+     *              | -90
+     *          ----|----
+     *  -180  /     |     \   0
+     *  -----|------+------|-----> x
+     *   180  \     |     /   0
+     *          ----|----
+     *              | 90
+     * 如果连续两次move事件的转动穿过了左侧-180到180，分2种情况：
+     *  实际转动角度超过180，则计算的结果是360减去该角度，即小于实际转动效果；
+     *      比如逆时针从-80转到80，实际转动为200，但计算结果是80 - (-80) = 160，小于实际效果。
+     *  实际转动角度不超过180，则忽略这次转动。
+     *      比如逆时针从-100转到100，实际转动为160，但计算结果为200，将返回0，忽略这次转动。
+     */
     private float getRotatedDegBetween2Events(MotionEvent event) {
         float spanX = event.getX(1) - event.getX(0);
         float spanY = event.getY(1) - event.getY(0);
         float tanDeg = (float) Math.atan2(spanY, spanX) * RADIAN_TO_DEGREE;
         if (oldTanDeg == 0f
-                || (tanDeg - oldTanDeg > REFERENCE_DEGREES && tanDeg >= 0f && oldTanDeg <= 0f)
-                || (oldTanDeg - tanDeg > REFERENCE_DEGREES && oldTanDeg >= 0f && tanDeg <= 0f)) {
+                || (tanDeg >= 0f && oldTanDeg <= 0f && tanDeg - oldTanDeg > REFERENCE_DEGREES)
+                || (tanDeg <= 0f && oldTanDeg >= 0f && oldTanDeg - tanDeg > REFERENCE_DEGREES)) {
 
             oldTanDeg = tanDeg;
-            return 0f;
+            return 0f; // 忽略这次转动（如果是转动的话）。
         } else {
             float deltaDeg = tanDeg - oldTanDeg;
             oldTanDeg = tanDeg;
