@@ -35,13 +35,18 @@ public class InertialScrolling {
             inertialScrollingListener.inertialScrolling(deltaMovedX, deltaMovedY);
         }
 
-        if (Math.abs(xVelocity) > Math.abs(yVelocity)) { // 谁大，谁的ratio是1
-            currXVelocity = getDecreasedVelocity(xVelocity, 1);
-            currYVelocity = getDecreasedVelocity(yVelocity, Math.abs(yVelocity / xVelocity));
+        if (Math.abs(xVelocity) > Math.abs(yVelocity)) { // 以较大速度分量来算衰减
+            float velocityDecay = getVelocityDecay(xVelocity);
+            float decayRatio = Math.abs(yVelocity / xVelocity);
+            currXVelocity = getDecayedVelocity(xVelocity, velocityDecay);
+            currYVelocity = getDecayedVelocity(yVelocity, velocityDecay * decayRatio);
         } else {
-            currXVelocity = getDecreasedVelocity(xVelocity, Math.abs(xVelocity / yVelocity));
-            currYVelocity = getDecreasedVelocity(yVelocity, 1);
+            float velocityDecay = getVelocityDecay(Math.abs(yVelocity));
+            float decayRatio = Math.abs(xVelocity / yVelocity);
+            currXVelocity = getDecayedVelocity(xVelocity, velocityDecay * decayRatio);
+            currYVelocity = getDecayedVelocity(yVelocity, velocityDecay);
         }
+
         if (currXVelocity == 0 && currYVelocity == 0) {
             return;
         }
@@ -50,17 +55,34 @@ public class InertialScrolling {
     }
 
     /**
-     * x和y方向上的速度衰减不一定相同，需要按比例。
+     * 根据不同的速度范围，取不同的速度衰减值，正值。
      */
-    private float getDecreasedVelocity(float velocity, float ratio) {
-        float VELOCITY_DECAY = 10; // 速度衰减，1s衰减60次，每次衰减量pixels/s。
-        float adjustedVelocity = VELOCITY_DECAY * ratio;
-        if (Math.abs(velocity) <= adjustedVelocity) {
+    private float getVelocityDecay(float velocity) {
+        float velocityDecay; // 速度衰减，1s衰减60次，每次衰减量pixels/s。
+        float velocityAbs = Math.abs(velocity);
+        if (velocityAbs > 5000) {
+            velocityDecay = 200;
+        } else if (velocityAbs > 2000) {
+            velocityDecay = 100;
+        } else if (velocityAbs > 1000) {
+            velocityDecay = 50;
+        } else if (velocityAbs > 500) {
+            velocityDecay = 25;
+        } else if (velocityAbs > 200) {
+            velocityDecay = 12;
+        } else {
+            velocityDecay = 4;
+        }
+        return velocityDecay;
+    }
+
+    private float getDecayedVelocity(float velocity, float velocityDecay) {
+        if (Math.abs(velocity) <= velocityDecay) {
             return 0f;
         } else if (velocity < 0) {
-            return velocity + adjustedVelocity;
+            return velocity + velocityDecay;
         } else {
-            return velocity - adjustedVelocity;
+            return velocity - velocityDecay;
         }
     }
 
