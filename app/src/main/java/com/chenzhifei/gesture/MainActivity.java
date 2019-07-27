@@ -1,10 +1,10 @@
 package com.chenzhifei.gesture;
 
-import android.os.Handler;
-import android.os.Message;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.MotionEvent;
+import android.view.View;
 import android.widget.TextView;
 
 import com.chenzhifei.libgesture.TwoFingersGestureDetector;
@@ -15,6 +15,9 @@ public class MainActivity extends AppCompatActivity {
     private float tvWidth = -1f;
     private float tvHeight = -1f;
 
+    private float mW = -1f;
+    private float mH = -1f;
+
     private TwoFingersGestureDetector twoFingersGestureDetector;
 
     private float rotateDeg = 0f;
@@ -22,14 +25,8 @@ public class MainActivity extends AppCompatActivity {
     private float translateX = 0f;
     private float translateY = 0f;
 
-    private Handler animHandler = new Handler(new Handler.Callback() {
-        @Override
-        public boolean handleMessage(Message message) {
-            Bundle data = message.getData();
-            handleMoveAnim(data.getFloat("xVelocity"), data.getFloat("yVelocity"));
-            return true;
-        }
-    });
+    private int transXFactor;
+    private int transYFactor;
 
     @Override
     protected void onCreate(final Bundle savedInstanceState) {
@@ -39,20 +36,28 @@ public class MainActivity extends AppCompatActivity {
         tv = (TextView) findViewById(R.id.tv);
 
         twoFingersGestureDetector = new TwoFingersGestureDetector();
+        twoFingersGestureDetector.enableInertialScrolling();
         twoFingersGestureDetector.setTwoFingersGestureListener(new TwoFingersGestureDetector.TwoFingersGestureListener() {
             @Override
             public void onDown(float downX, float downY, long downTime) {
-                animHandler.removeCallbacksAndMessages(null);
                 if (tvWidth == -1f) {
                     tvWidth = tv.getWidth();
                     tvHeight = tv.getHeight();
+                }
+                if (mW == -1f) {
+                    mW = ((View)tv.getParent()).getWidth();
+                    mH = ((View)tv.getParent()).getHeight();
                 }
             }
 
             @Override
             public void onMoved(float deltaMovedX, float deltaMovedY, long deltaMilliseconds) {
-                tv.setTranslationX(translateX += deltaMovedX);
-                tv.setTranslationY(translateY += deltaMovedY);
+                if (Math.abs(translateX + deltaMovedX) <= mW/2) {
+                    tv.setTranslationX(translateX += deltaMovedX);
+                }
+                if (Math.abs(translateY + deltaMovedY) <= mH/2) {
+                    tv.setTranslationY(translateY += deltaMovedY);
+                }
             }
 
             @Override
@@ -69,7 +74,25 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public void onUp(float upX, float upY, long upTime, float xVelocity, float yVelocity) {
-                handleMoveAnim(xVelocity, yVelocity);
+                transXFactor = xVelocity > 0 ? 1 : -1;
+                transYFactor = yVelocity > 0 ? 1 : -1;
+            }
+
+            @Override
+            public void onInertialScrolling(float deltaMovedX, float deltaMovedY) {
+                if (translateX + deltaMovedX < (-mW/2)) {
+                    transXFactor = 1;
+                } else if (translateX + deltaMovedX > (mW/2)) {
+                    transXFactor = -1;
+                }
+                tv.setTranslationX(translateX += Math.abs(deltaMovedX) * transXFactor);
+
+                if (translateY + deltaMovedY < (-mH/2)) {
+                    transYFactor = 1;
+                } else if (translateY + deltaMovedY > (mH/2)) {
+                    transYFactor = -1;
+                }
+                tv.setTranslationY(translateY += Math.abs(deltaMovedY) * transYFactor);
             }
 
             @Override
@@ -81,39 +104,5 @@ public class MainActivity extends AppCompatActivity {
     public boolean onTouchEvent(MotionEvent event) {
         twoFingersGestureDetector.onTouchEvent(event);
         return super.onTouchEvent(event);
-    }
-
-    private void handleMoveAnim(float xVelocity, float yVelocity) {
-        if (xVelocity == 0 || yVelocity == 0) {
-            return;
-        }
-        float REFRESH_TIME = 0.01667f; // 屏幕刷新16.67ms
-        tv.setTranslationX(translateX += xVelocity * REFRESH_TIME);
-        tv.setTranslationY(translateY += yVelocity * REFRESH_TIME);
-        float newXVelocity = getDecreasedVelocity(xVelocity, 1),
-              newYVelocity = getDecreasedVelocity(yVelocity, Math.abs(yVelocity / xVelocity));
-        if (newXVelocity == 0 || newYVelocity == 0) {
-            return;
-        }
-        Bundle data = new Bundle();
-        data.putFloat("xVelocity", newXVelocity);
-        data.putFloat("yVelocity", newYVelocity);
-        Message msg = Message.obtain();
-        msg.setData(data);
-        animHandler.sendMessage(msg);
-    }
-
-    /**
-     * x和y方向上的速度衰减不一定相同，需要按比例。
-     */
-    private float getDecreasedVelocity(float velocity, float ratio) {
-        float VELOCITY_DECAY = 30; // 速度衰减，1s衰减60次，每次衰减量pixels/s。
-        if (Math.abs(velocity) <= VELOCITY_DECAY) {
-            return 0f;
-        } else if (velocity < 0) {
-            return velocity + VELOCITY_DECAY * ratio;
-        } else {
-            return velocity - VELOCITY_DECAY * ratio;
-        }
     }
 }

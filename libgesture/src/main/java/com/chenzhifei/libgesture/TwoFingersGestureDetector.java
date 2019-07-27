@@ -29,6 +29,21 @@ public class TwoFingersGestureDetector {
     private long oldTimestamp = 0;
 
     private VelocityTracker vt = VelocityTracker.obtain();
+    private InertialScrolling inertialScrolling;
+
+    public void enableInertialScrolling() {
+        if (inertialScrolling == null) {
+            inertialScrolling = new InertialScrolling();
+            inertialScrolling.setInertialScrollingListener(new InertialScrolling.InertialScrollingListener() {
+                @Override
+                public void inertialScrolling(float deltaMovedX, float deltaMovedY) {
+                    if (twoFingersGestureListener != null) {
+                        twoFingersGestureListener.onInertialScrolling(deltaMovedX, deltaMovedY);
+                    }
+                }
+            });
+        }
+    }
 
     public boolean onTouchEvent(MotionEvent event) {
         if (event.getPointerCount() > 2) {
@@ -40,6 +55,9 @@ public class TwoFingersGestureDetector {
         vt.addMovement(event);
         switch (event.getActionMasked()) {
             case MotionEvent.ACTION_DOWN:
+                if (inertialScrolling != null) {
+                    inertialScrolling.stopInertialScrolling();
+                }
                 oldX = event.getX(0);
                 oldY = event.getY(0);
                 oldTimestamp = event.getDownTime();
@@ -130,6 +148,10 @@ public class TwoFingersGestureDetector {
                 if (twoFingersGestureListener != null) {
                     twoFingersGestureListener.onUp(oldX, oldY, oldTimestamp, xVelocity, yVelocity);
                 }
+
+                if (inertialScrolling != null) {
+                    inertialScrolling.updateXYVelocity(xVelocity, yVelocity);
+                }
                 break;
         }
         return true;
@@ -194,7 +216,8 @@ public class TwoFingersGestureDetector {
     }
 
     private float getScaledDistanceBetween2Events(MotionEvent event) {
-        float newScaledX = event.getX(1) - event.getX(0), newScaledY = event.getY(1) - event.getY(0);
+        float newScaledX = event.getX(1) - event.getX(0),
+              newScaledY = event.getY(1) - event.getY(0);
         float new2FingerDistance = (float) Math.sqrt((newScaledX * newScaledX) + (newScaledY * newScaledY));
         if (old2FingersDistance == 0f) {
             old2FingersDistance = new2FingerDistance;
@@ -217,6 +240,8 @@ public class TwoFingersGestureDetector {
 
         // velocity: pixels/second   degrees/second
         void onUp(float upX, float upY, long upTime, float xVelocity, float yVelocity);
+
+        void onInertialScrolling(float deltaMovedX, float deltaMovedY);
 
         /**
          * invoked when more than 2 findgers
