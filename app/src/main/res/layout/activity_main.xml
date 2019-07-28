@@ -11,8 +11,10 @@
         android:id="@+id/tv"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:background="#0f0"
         android:text="move\nrotate\nscale"
         android:textColor="#555"
+        android:textAlignment="center"
         android:layout_gravity="center" />
 
 </FrameLayout>
