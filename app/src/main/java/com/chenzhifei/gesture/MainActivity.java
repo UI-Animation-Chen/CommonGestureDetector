@@ -26,12 +26,19 @@ public class MainActivity extends AppCompatActivity {
 
         twoFingersGestureDetector = new TwoFingersGestureDetector();
         twoFingersGestureDetector.enableInertialScrolling();
+        twoFingersGestureDetector.setLongPressedHandler(new TwoFingersGestureDetector.LongPressedListener() {
+            @Override
+            public void longPressed(MotionEvent e) {
+                tv.setScaleX(5);
+                tv.setScaleY(5);
+            }
+        });
         twoFingersGestureDetector.setTwoFingersGestureListener(new TwoFingersGestureDetector.TwoFingersGestureListener() {
             @Override
             public void onDown(float downX, float downY, long downTime) {}
 
             @Override
-            public void onMoved(float deltaMovedX, float deltaMovedY, long deltaMilliseconds) {
+            public void onMoved(float deltaMovedX, float deltaMovedY, long deltaMilliseconds, int fingers) {
                 if (Math.abs(tv.getTranslationX() + deltaMovedX) <= getTransXLimit()) {
                     tv.setTranslationX(tv.getTranslationX() + deltaMovedX);
                 }

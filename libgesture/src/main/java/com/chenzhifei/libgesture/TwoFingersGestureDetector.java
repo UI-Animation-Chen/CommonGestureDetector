@@ -1,7 +1,10 @@
 package com.chenzhifei.libgesture;
 
+import android.os.Handler;
+import android.os.Message;
 import android.view.MotionEvent;
 import android.view.VelocityTracker;
+import android.view.ViewConfiguration;
 
 /**
  * Created by chenzhifei on 2017/6/30.
@@ -31,6 +34,19 @@ public class TwoFingersGestureDetector {
     private VelocityTracker vt = VelocityTracker.obtain();
     private InertialScrolling inertialScrolling;
 
+    private int touchSlop = 8;
+    private int movedX, movedY;
+    private MotionEvent longPressedEvent;
+    private Handler longPressedHandler = new Handler(new Handler.Callback() {
+        @Override
+        public boolean handleMessage(Message msg) {
+            if (longPressedListener != null) {
+                longPressedListener.longPressed(longPressedEvent);
+            }
+            return true;
+        }
+    });
+
     public void enableInertialScrolling() {
         if (inertialScrolling == null) {
             inertialScrolling = new InertialScrolling();
@@ -51,6 +67,7 @@ public class TwoFingersGestureDetector {
             if (twoFingersGestureListener != null) {
                 twoFingersGestureListener.onCancel();
             }
+            longPressedHandler.removeCallbacksAndMessages(null);
         }
         vt.addMovement(event);
         switch (event.getActionMasked()) {
@@ -64,11 +81,18 @@ public class TwoFingersGestureDetector {
                 if (twoFingersGestureListener != null) {
                     twoFingersGestureListener.onDown(oldX, oldY, oldTimestamp);
                 }
+
+                movedX = 0;
+                movedY = 0;
+                longPressedEvent = event;
+                longPressedHandler.sendEmptyMessageDelayed(0, 800);
                 break;
             case MotionEvent.ACTION_POINTER_DOWN:
                 if (moreThan2Fingers) {
                     return true;
                 }
+
+                longPressedHandler.removeCallbacksAndMessages(null);
 
                 // 第二个触点一出现就清空。当然上次up清理也行。
                 oldTanDeg = 0f;
@@ -100,7 +124,8 @@ public class TwoFingersGestureDetector {
                     float currDeltaScaledDistance = getScaledDistanceBetween2Events(event);
 
                     if (this.twoFingersGestureListener != null) {
-                        twoFingersGestureListener.onScaled(deltaScaledX, deltaScaledY, currDeltaScaledDistance, currDeltaMilliseconds);
+                        twoFingersGestureListener.onScaled(deltaScaledX, deltaScaledY,
+                                                           currDeltaScaledDistance, currDeltaMilliseconds);
                         twoFingersGestureListener.onRotated(currDeltaRotatedDeg, currDeltaMilliseconds);
                     }
 
@@ -118,7 +143,13 @@ public class TwoFingersGestureDetector {
                 oldY = newY;
 
                 if (this.twoFingersGestureListener != null) {
-                    twoFingersGestureListener.onMoved(currDeltaMovedX, currDeltaMovedY, currDeltaMilliseconds);
+                    twoFingersGestureListener.onMoved(currDeltaMovedX, currDeltaMovedY,
+                                                      currDeltaMilliseconds, event.getPointerCount());
+                }
+
+                if (Math.abs(movedX += currDeltaMovedX) > touchSlop ||
+                        Math.abs(movedY += currDeltaMovedY) > touchSlop) {
+                    longPressedHandler.removeCallbacksAndMessages(null);
                 }
                 break;
             case MotionEvent.ACTION_POINTER_UP:
@@ -139,6 +170,8 @@ public class TwoFingersGestureDetector {
                     moreThan2Fingers = false;
                     return true;
                 }
+
+                longPressedHandler.removeCallbacksAndMessages(null);
 
                 vt.computeCurrentVelocity(1000);
                 float yVelocity = vt.getYVelocity();
@@ -232,7 +265,7 @@ public class TwoFingersGestureDetector {
     public interface TwoFingersGestureListener {
         void onDown(float downX, float downY, long downTime);
 
-        void onMoved(float deltaMovedX, float deltaMovedY, long deltaMilliseconds);
+        void onMoved(float deltaMovedX, float deltaMovedY, long deltaMilliseconds, int fingers);
 
         void onRotated(float deltaRotatedDeg, long deltaMilliseconds);
 
@@ -253,5 +286,15 @@ public class TwoFingersGestureDetector {
 
     public void setTwoFingersGestureListener(TwoFingersGestureListener l) {
         this.twoFingersGestureListener = l;
+    }
+
+    public interface LongPressedListener {
+        void longPressed(MotionEvent e);
+    }
+
+    private LongPressedListener longPressedListener;
+
+    public void setLongPressedHandler(LongPressedListener l) {
+        this.longPressedListener = l;
     }
 }
