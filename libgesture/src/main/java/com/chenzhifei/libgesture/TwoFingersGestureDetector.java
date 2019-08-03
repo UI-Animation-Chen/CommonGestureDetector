@@ -15,8 +15,8 @@ public class TwoFingersGestureDetector {
 
     private boolean moreThan2Fingers = false;
 
-    private float oldX = 0f;
-    private float oldY = 0f;
+    private float oldX = -1;
+    private float oldY = -1;
 
     // 如果在连续两次MOVE事件中转动穿过了左侧-180到180，那么这次转动效果或按0度算，或小于实际角度。
     // 但连续两次move事件超过180度几乎是不可能的。
@@ -94,12 +94,6 @@ public class TwoFingersGestureDetector {
 
                 longPressedHandler.removeCallbacksAndMessages(null);
 
-                // 第二个触点一出现就清空。当然上次up清理也行。
-                oldTanDeg = 0f;
-                oldScaledX = 0f;
-                oldScaledY = 0f;
-                old2FingersDistance = 0f;
-
                 oldX = (event.getX(0) + event.getX(1)) / 2f;
                 oldY = (event.getY(0) + event.getY(1)) / 2f;
                 oldTimestamp = event.getEventTime();
@@ -107,6 +101,30 @@ public class TwoFingersGestureDetector {
             case MotionEvent.ACTION_MOVE:
                 if (moreThan2Fingers) {
                     return true;
+                }
+
+                if (oldX == -1) { // 从move才开始接收事件，这里当down事件处理。
+                    if (inertialScrolling != null) {
+                        inertialScrolling.stopInertialScrolling();
+                    }
+
+                    if (event.getPointerCount() == 2) {
+                        oldX = (event.getX(0) + event.getX(1)) / 2f;
+                        oldY = (event.getY(0) + event.getY(1)) / 2f;
+                    } else {
+                        oldX = event.getX(0);
+                        oldY = event.getY(0);
+                    }
+                    oldTimestamp = event.getDownTime();
+                    if (twoFingersGestureListener != null) {
+                        twoFingersGestureListener.onDown(oldX, oldY, oldTimestamp);
+                    }
+
+                    movedX = 0;
+                    movedY = 0;
+                    longPressedEvent = event;
+                    longPressedHandler.sendEmptyMessageDelayed(0, 800);
+                    break;
                 }
 
                 long newTimestamp = event.getEventTime();
@@ -143,7 +161,7 @@ public class TwoFingersGestureDetector {
                 oldY = newY;
 
                 if (this.twoFingersGestureListener != null) {
-                    twoFingersGestureListener.onMoved(currDeltaMovedX, currDeltaMovedY,
+                    twoFingersGestureListener.onMoved(newX, newY, currDeltaMovedX, currDeltaMovedY,
                                                       currDeltaMilliseconds, event.getPointerCount());
                 }
 
@@ -185,6 +203,13 @@ public class TwoFingersGestureDetector {
                 if (inertialScrolling != null) {
                     inertialScrolling.updateXYVelocity(xVelocity, yVelocity);
                 }
+
+                oldX = -1;
+                oldY = -1;
+                oldTanDeg = 0f;
+                oldScaledX = 0f;
+                oldScaledY = 0f;
+                old2FingersDistance = 0f;
                 break;
         }
         return true;
@@ -262,24 +287,24 @@ public class TwoFingersGestureDetector {
         }
     }
 
-    public interface TwoFingersGestureListener {
-        void onDown(float downX, float downY, long downTime);
+    public static class TwoFingersGestureListener {
+        public void onDown(float downX, float downY, long downTime) {};
 
-        void onMoved(float deltaMovedX, float deltaMovedY, long deltaMilliseconds, int fingers);
+        public void onMoved(float moveX, float moveY, float deltaMovedX, float deltaMovedY, long deltaMilliseconds, int fingers) {}
 
-        void onRotated(float deltaRotatedDeg, long deltaMilliseconds);
+        public void onRotated(float deltaRotatedDeg, long deltaMilliseconds) {}
 
-        void onScaled(float deltaScaledX, float deltaScaledY, float deltaScaledDistance, long deltaMilliseconds);
+        public void onScaled(float deltaScaledX, float deltaScaledY, float deltaScaledDistance, long deltaMilliseconds) {}
 
         // velocity: pixels/second   degrees/second
-        void onUp(float upX, float upY, long upTime, float xVelocity, float yVelocity);
+        public void onUp(float upX, float upY, long upTime, float xVelocity, float yVelocity) {}
 
-        void onInertialScrolling(float deltaMovedX, float deltaMovedY);
+        public void onInertialScrolling(float deltaMovedX, float deltaMovedY) {}
 
         /**
          * invoked when more than 2 findgers
          */
-        void onCancel();
+        public void onCancel() {}
     }
 
     private TwoFingersGestureListener twoFingersGestureListener;

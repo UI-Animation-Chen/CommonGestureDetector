@@ -7,14 +7,11 @@
     android:background="#eeeeee"
     tools:context="com.chenzhifei.gesture.MainActivity">
 
-    <TextView
-        android:id="@+id/tv"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:background="#0f0"
-        android:text="move\nrotate\nscale"
-        android:textColor="#555"
-        android:textAlignment="center"
-        android:layout_gravity="center" />
+    <com.chenzhifei.gesture.SketchView
+        android:id="@+id/sketch_view"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_margin="10dp"
+        android:background="#fff"/>
 
 </FrameLayout>
