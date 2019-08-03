@@ -23,7 +23,6 @@ public class SketchView extends FrameLayout {
 
     private TwoFingersGestureDetector twoFingersGestureDetector;
 
-
     public SketchView(Context context) {
         this(context, null);
     }

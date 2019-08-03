@@ -184,12 +184,18 @@ public class TwoFingersGestureDetector {
                 }
                 break;
             case MotionEvent.ACTION_UP:
+                oldX = -1;
+                oldY = -1;
+                oldTanDeg = 0f;
+                oldScaledX = 0f;
+                oldScaledY = 0f;
+                old2FingersDistance = 0f;
+                longPressedHandler.removeCallbacksAndMessages(null);
+
                 if (moreThan2Fingers) {
                     moreThan2Fingers = false;
                     return true;
                 }
-
-                longPressedHandler.removeCallbacksAndMessages(null);
 
                 vt.computeCurrentVelocity(1000);
                 float yVelocity = vt.getYVelocity();
@@ -203,13 +209,6 @@ public class TwoFingersGestureDetector {
                 if (inertialScrolling != null) {
                     inertialScrolling.updateXYVelocity(xVelocity, yVelocity);
                 }
-
-                oldX = -1;
-                oldY = -1;
-                oldTanDeg = 0f;
-                oldScaledX = 0f;
-                oldScaledY = 0f;
-                old2FingersDistance = 0f;
                 break;
         }
         return true;
