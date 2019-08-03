@@ -17,6 +17,11 @@ import java.util.List;
 
 public class SketchView extends FrameLayout {
 
+    private String paintColor = "#00ff00";
+    private float paintWidth = 2;
+    private int screenNum = 1;
+    private int maxScreens = 3;
+
     private CanvasView canvasView;
     private List<Path> pathList = new ArrayList<>();
     private Paint paint;
@@ -48,10 +53,20 @@ public class SketchView extends FrameLayout {
         canvasView.setLayoutParams(p);
     }
 
+    public void addScreenNum() {
+        if (screenNum > maxScreens) {
+            return;
+        }
+        screenNum++;
+        FrameLayout.LayoutParams p = (FrameLayout.LayoutParams)canvasView.getLayoutParams();
+        p.height = this.getHeight() * screenNum;
+        canvasView.setLayoutParams(p);
+    }
+
     private void setPaint() {
         paint = new Paint();
-        paint.setColor(Color.rgb(0, 255, 2));
-        paint.setStrokeWidth(2);
+        paint.setColor(Color.parseColor(paintColor));
+        paint.setStrokeWidth(paintWidth);
         paint.setStrokeCap(Paint.Cap.ROUND);
         paint.setStyle(Paint.Style.STROKE);
     }
@@ -62,14 +77,18 @@ public class SketchView extends FrameLayout {
             @Override
             public void onMoved(float moveX, float moveY, float deltaMovedX, float deltaMovedY, long deltaMilliseconds, int fingers) {
                 float newTransX = canvasView.getTranslationX() + deltaMovedX;
-                float newTransY = canvasView.getTranslationY() + deltaMovedY;
-                float transXlimit = (canvasView.getScaleX() - 1) * canvasView.getWidth();
-                float transYlimit = (canvasView.getScaleY() - 1) * canvasView.getHeight();
-                if (Math.abs(newTransX) > transXlimit/2) {
-                    newTransX = newTransX > 0 ? transXlimit/2 : -transXlimit/2;
+                float transXlimit = (canvasView.getScaleX() - 1) * getWidth() / 2;
+                if (Math.abs(newTransX) > transXlimit) {
+                    newTransX = newTransX > 0 ? transXlimit : -transXlimit;
                 }
-                if (Math.abs(newTransY) > transYlimit/2) {
-                    newTransY = newTransY > 0 ? transYlimit/2 : -transYlimit/2;
+
+                float newTransY = canvasView.getTranslationY() + deltaMovedY;
+                float transYlimit = (canvasView.getScaleY() - 1) * screenNum * getHeight() / 2;
+                if (newTransY >= 0) {
+                    newTransY = newTransY > transYlimit ? transYlimit : newTransY;
+                } else {
+                    float multiScreenTransYlimit = transYlimit + (screenNum-1) * getHeight();
+                    newTransY = -newTransY > multiScreenTransYlimit ? -multiScreenTransYlimit : newTransY;
                 }
                 canvasView.setTranslationX(newTransX);
                 canvasView.setTranslationY(newTransY);
