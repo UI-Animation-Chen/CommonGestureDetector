@@ -1,23 +1,42 @@
 <?xml version="1.0" encoding="utf-8"?>
-<FrameLayout
+<LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="#eeeeee"
+    android:orientation="horizontal"
     tools:context="com.chenzhifei.gesture.MainActivity">
 
     <com.chenzhifei.gesture.SketchView
         android:id="@+id/sketch_view"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
+        android:layout_weight="1"
         android:layout_margin="10dp"
         android:background="#fff"/>
 
-    <Button
-        android:id="@+id/btn"
+    <LinearLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="operate"/>
+        android:orientation="vertical">
 
-</FrameLayout>
+        <android.support.v7.widget.SwitchCompat
+            android:id="@+id/operate_img"
+            android:layout_width="wrap_content"
+            android:layout_height="50dp"
+            android:text="image"
+            android:textColor="#000"/>
+        <Button
+            android:id="@+id/add_a_screen"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="add a screen"/>
+        <Button
+            android:id="@+id/save_to_jpg"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="save to jpg"/>
+    </LinearLayout>
+
+</LinearLayout>

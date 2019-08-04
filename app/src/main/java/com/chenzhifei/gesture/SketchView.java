@@ -1,17 +1,22 @@
 package com.chenzhifei.gesture;
 
 import android.content.Context;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.graphics.Path;
+import android.os.Environment;
 import android.util.AttributeSet;
 import android.view.MotionEvent;
-import android.view.View;
 import android.widget.FrameLayout;
 
 import com.chenzhifei.libgesture.TwoFingersGestureDetector;
 
+import java.io.File;
+import java.io.FileOutputStream;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -21,6 +26,11 @@ public class SketchView extends FrameLayout {
     private float paintWidth = 2;
     private int screenNum = 1;
     private int maxScreens = 3;
+    private boolean isOperatingImage = true;
+
+    private Bitmap imageBp;
+    private Paint imagePaint = new Paint();
+    private Matrix imageMatrix = new Matrix();
 
     private CanvasView canvasView;
     private List<Path> pathList = new ArrayList<>();
@@ -38,29 +48,36 @@ public class SketchView extends FrameLayout {
 
     public SketchView(Context context, AttributeSet attrs, int defaultStyle) {
         super(context, attrs, defaultStyle);
-        addCanvasView(context, attrs, defaultStyle);
+        addCanvasView(context);
         setPaint();
         setGestureDetector();
     }
 
-    private void addCanvasView(Context context, AttributeSet attrs, int defaultStyle) {
-        canvasView = new CanvasView(context, attrs, defaultStyle);
+    private void addCanvasView(Context context) {
+        canvasView = new CanvasView(context);
         canvasView.setBackgroundColor(Color.GRAY);
         addView(canvasView);
         FrameLayout.LayoutParams p = (FrameLayout.LayoutParams)canvasView.getLayoutParams();
         p.width = LayoutParams.MATCH_PARENT;
         p.height = LayoutParams.MATCH_PARENT;
         canvasView.setLayoutParams(p);
+
+        imageBp = BitmapFactory.decodeResource(getResources(), R.mipmap.ic_launcher);
     }
 
     public void addScreenNum() {
-        if (screenNum > maxScreens) {
+        if (screenNum >= maxScreens) {
             return;
         }
         screenNum++;
         FrameLayout.LayoutParams p = (FrameLayout.LayoutParams)canvasView.getLayoutParams();
         p.height = this.getHeight() * screenNum;
         canvasView.setLayoutParams(p);
+    }
+
+    public boolean setOperatingImage() {
+        isOperatingImage = !isOperatingImage;
+        return isOperatingImage;
     }
 
     private void setPaint() {
@@ -76,6 +93,12 @@ public class SketchView extends FrameLayout {
         twoFingersGestureDetector.setTwoFingersGestureListener(new TwoFingersGestureDetector.TwoFingersGestureListener() {
             @Override
             public void onMoved(float moveX, float moveY, float deltaMovedX, float deltaMovedY, long deltaMilliseconds, int fingers) {
+                if (isOperatingImage) {
+                    float canvasViewScale = canvasView.getScaleX();
+                    imageMatrix.postTranslate(deltaMovedX/canvasViewScale, deltaMovedY/canvasViewScale);
+                    canvasView.invalidate();
+                    return;
+                }
                 float newTransX = canvasView.getTranslationX() + deltaMovedX;
                 float transXlimit = (canvasView.getScaleX() - 1) * getWidth() / 2;
                 if (Math.abs(newTransX) > transXlimit) {
@@ -103,6 +126,12 @@ public class SketchView extends FrameLayout {
             public void onScaled(float deltaScaledX, float deltaScaledY, float deltaScaledDistance, long deltaMilliseconds) {
                 float scaleFactor = canvasView.getScaleX();
                 scaleFactor += deltaScaledDistance * scaleFactor / canvasView.getWidth();
+                if (isOperatingImage) {
+                    float canvasViewScale = canvasView.getScaleX(); // 防止双倍缩放
+                    imageMatrix.preScale(scaleFactor/canvasViewScale, scaleFactor/canvasViewScale);
+                    canvasView.invalidate();
+                    return;
+                }
                 if (scaleFactor < 1) {
                     scaleFactor = 1;
                 }
@@ -131,7 +160,7 @@ public class SketchView extends FrameLayout {
         }
     }
 
-    private class CanvasView extends View{
+    private class CanvasView extends FrameLayout {
         public CanvasView(Context context) {
             this(context, null);
         }
@@ -147,6 +176,7 @@ public class SketchView extends FrameLayout {
         @Override
         protected void onDraw(Canvas canvas) {
             super.onDraw(canvas);
+            canvas.drawBitmap(imageBp, imageMatrix, imagePaint);
             for (Path path: pathList) {
                 canvas.drawPath(path, paint);
             }
@@ -166,6 +196,22 @@ public class SketchView extends FrameLayout {
             }
             invalidate();
             return true;
+        }
+    }
+
+    public void saveToJPG() {
+        Bitmap bp = Bitmap.createBitmap(canvasView.getWidth(), canvasView.getHeight(), Bitmap.Config.RGB_565);
+        Canvas canvas = new Canvas(bp);
+        canvasView.draw(canvas);
+        String jpgName = "jiandan100Sketch.jpg";
+        File jpgFile = new File(Environment.getExternalStorageDirectory().getAbsolutePath()
+                + File.separator + jpgName);
+        try {
+            FileOutputStream fos = new FileOutputStream(jpgFile);
+            bp.compress(Bitmap.CompressFormat.JPEG, 100, fos);
+            fos.close();
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 }
