@@ -42,7 +42,7 @@ public class SketchView extends FrameLayout {
     private String paintPenColor = "#00ff00";
     private float paintPenWidth = 2;
     private Paint paintRubber;
-    private float paintRubberWidth = 10;
+    private float paintRubberWidth = 50;
 
     private TwoFingersGestureDetector twoFingersGestureDetector;
 
@@ -63,7 +63,7 @@ public class SketchView extends FrameLayout {
 
     private void addCanvasView(Context context) {
         canvasView = new CanvasView(context);
-        canvasView.setBackgroundColor(Color.parseColor("#ffbbbbbb"));
+        canvasView.setBackgroundColor(Color.parseColor("#cccccc"));
         addView(canvasView);
         FrameLayout.LayoutParams p = (FrameLayout.LayoutParams)canvasView.getLayoutParams();
         p.width = LayoutParams.MATCH_PARENT;
@@ -168,7 +168,7 @@ public class SketchView extends FrameLayout {
                 scaleFactor += deltaScaledDistance * scaleFactor / canvasView.getWidth();
                 if (isOperatingImage) {
                     float canvasViewScale = canvasView.getScaleX(); // 防止双倍缩放
-                    // preScale具有累加效果
+                    // 这里变换具有累加效果
                     imageMatrix.preScale(scaleFactor/canvasViewScale, scaleFactor/canvasViewScale);
                     canvasView.invalidate();
                     return;
@@ -195,6 +195,7 @@ public class SketchView extends FrameLayout {
     public boolean onInterceptTouchEvent(MotionEvent ev) {
         if (ev.getPointerCount() > 1) {
             pathList.remove(pathList.size() - 1);
+            canvasView.moveX = -1;
             return true;
         } else {
             return false;
@@ -227,6 +228,9 @@ public class SketchView extends FrameLayout {
         private Bitmap sketchBitmap;
         private Canvas sketchCanvas;
         private Paint sketchPaint = new Paint();
+        private Paint rubberTipPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private int rubberTipColor, rubberBoundsColor;
+        private float moveX, moveY;
 
         public CanvasView(Context context) {
             this(context, null);
@@ -238,6 +242,8 @@ public class SketchView extends FrameLayout {
 
         public CanvasView(Context context, AttributeSet attrs, int defStyle) {
             super(context, attrs, defStyle);
+            rubberTipColor = Color.parseColor("#ffffff");
+            rubberBoundsColor = Color.parseColor("#666666");
         }
 
         @Override
@@ -264,6 +270,12 @@ public class SketchView extends FrameLayout {
                 }
             }
             canvas.drawBitmap(sketchBitmap, 0, 0, sketchPaint);
+            if (lineMode == LINE_MODE_RUBBER && moveX != -1) {
+                rubberTipPaint.setColor(rubberBoundsColor);
+                canvas.drawCircle(moveX, moveY, paintRubberWidth/2, rubberTipPaint);
+                rubberTipPaint.setColor(rubberTipColor);
+                canvas.drawCircle(moveX, moveY, paintRubberWidth/2 - 1, rubberTipPaint);
+            }
         }
 
         @Override
@@ -277,11 +289,16 @@ public class SketchView extends FrameLayout {
                     pathList.add(p);
                     break;
                 case MotionEvent.ACTION_MOVE:
+                    moveX = event.getX();
+                    moveY = event.getY();
                     if (lineMode != LINE_MODE_STRAIGHT) {
-                        pathList.get(pathList.size() - 1).path.lineTo(event.getX(), event.getY());
+                        pathList.get(pathList.size() - 1).path.lineTo(moveX, moveY);
                     } else {
-                        pathList.get(pathList.size() - 1).setLineEnd(event.getX(), event.getY());
+                        pathList.get(pathList.size() - 1).setLineEnd(moveX, moveY);
                     }
+                    break;
+                case MotionEvent.ACTION_UP:
+                    moveX = -1;
                     break;
             }
             invalidate();
