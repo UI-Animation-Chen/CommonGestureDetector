@@ -171,6 +171,14 @@ public class TwoFingersGestureDetector {
                 }
                 break;
             case MotionEvent.ACTION_POINTER_UP:
+                oldX = -1; // 多指touch时有一指离开再按下，防止跳动。
+                oldY = -1;
+                oldTanDeg = 0f;
+                oldScaledX = 0f;
+                oldScaledY = 0f;
+                old2FingersDistance = 0f;
+                longPressedHandler.removeCallbacksAndMessages(null);
+
                 if (moreThan2Fingers) {
                     return true;
                 }
