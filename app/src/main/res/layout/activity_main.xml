@@ -37,6 +37,54 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="save to jpg"/>
+        <RadioGroup
+            android:id="@+id/color_rg"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content">
+            <RadioButton
+                android:id="@+id/green"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_margin="5dp"
+                android:text="green"
+                android:textColor="#000"
+                android:checked="true"/>
+            <RadioButton
+                android:id="@+id/red"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_margin="5dp"
+                android:text="red"
+                android:textColor="#000"/>
+        </RadioGroup>
+        <RadioGroup
+            android:id="@+id/radio_group"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp">
+            <RadioButton
+                android:id="@+id/curve"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_margin="5dp"
+                android:text="curve"
+                android:textColor="#000"
+                android:checked="true"/>
+            <RadioButton
+                android:id="@+id/straight_line"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_margin="5dp"
+                android:text="straight line"
+                android:textColor="#000"/>
+            <RadioButton
+                android:id="@+id/rubber"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_margin="5dp"
+                android:text="rubber"
+                android:textColor="#000"/>
+        </RadioGroup>
     </LinearLayout>
 
 </LinearLayout>
