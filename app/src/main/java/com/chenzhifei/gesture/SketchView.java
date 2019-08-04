@@ -35,8 +35,6 @@ public class SketchView extends FrameLayout {
     private int maxScreens = 3;
     private boolean isOperatingImage = true;
 
-    private Bitmap imageBp;
-    private Paint imagePaint = new Paint();
     private Matrix imageMatrix = new Matrix();
 
     private CanvasView canvasView;
@@ -72,14 +70,27 @@ public class SketchView extends FrameLayout {
         p.width = LayoutParams.MATCH_PARENT;
         p.height = LayoutParams.MATCH_PARENT;
         canvasView.setLayoutParams(p);
+    }
 
-        imageBp = BitmapFactory.decodeResource(getResources(), R.mipmap.ic_launcher);
-        canvasView.setImageBitmap(imageBp);
+    public void setImageBitmap(Bitmap bitmap) {
+        canvasView.setImageBitmap(bitmap);
         canvasView.setScaleType(ImageView.ScaleType.MATRIX);
     }
 
     public void setPenColor(String color) {
         paintPenColor = color;
+    }
+
+    public void setPenWidth(float penWidth) {
+        paintPenWidth = penWidth;
+    }
+
+    public void setRubberWidth(float rubberWidth) {
+        paintRubberWidth = rubberWidth;
+    }
+
+    public void setMaxScreens(int maxScreens) {
+        this.maxScreens = maxScreens;
     }
 
     public void addScreenNum() {

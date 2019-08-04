@@ -1,5 +1,7 @@
 package com.chenzhifei.gesture;
 
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.SwitchCompat;
@@ -14,6 +16,8 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         final SketchView sketchView = findViewById(R.id.sketch_view);
+        Bitmap bp = BitmapFactory.decodeResource(getResources(), R.mipmap.ic_launcher);
+        sketchView.setImageBitmap(bp);
 
         final SwitchCompat switchView = findViewById(R.id.operate_img);
         switchView.setOnClickListener(new View.OnClickListener() {
