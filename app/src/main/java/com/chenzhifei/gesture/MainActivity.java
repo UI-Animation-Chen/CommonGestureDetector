@@ -22,7 +22,7 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         sketchView = findViewById(R.id.sketch_view);
-        Bitmap bp = BitmapFactory.decodeResource(getResources(), R.mipmap.ic_launcher);
+        Bitmap bp = BitmapFactory.decodeResource(getResources(), R.mipmap.title);
         sketchView.setImageBitmap(bp);
 
         final SwitchCompat switchView = findViewById(R.id.operate_img);
