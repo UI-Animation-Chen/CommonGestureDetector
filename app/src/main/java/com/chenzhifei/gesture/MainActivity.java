@@ -50,6 +50,8 @@ public class MainActivity extends AppCompatActivity {
                     } else {
                         sketchView.saveToJPG();
                     }
+                } else {
+                    sketchView.saveToJPG();
                 }
             }
         });

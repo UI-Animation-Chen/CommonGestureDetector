@@ -1,5 +1,6 @@
 package com.chenzhifei.gesture;
 
+import android.animation.ValueAnimator;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
@@ -14,6 +15,7 @@ import android.os.Environment;
 import android.support.v7.widget.AppCompatImageView;
 import android.util.AttributeSet;
 import android.view.MotionEvent;
+import android.view.animation.DecelerateInterpolator;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 
@@ -142,19 +144,19 @@ public class SketchView extends FrameLayout {
                     return;
                 }
                 float newTransX = canvasView.getTranslationX() + deltaMovedX;
-                float transXlimit = (canvasView.getScaleX() - 1) * getWidth() / 2;
-                if (Math.abs(newTransX) > transXlimit) {
-                    newTransX = newTransX > 0 ? transXlimit : -transXlimit;
-                }
+//                float transXlimit = (canvasView.getScaleX() - 1) * getWidth() / 2;
+//                if (Math.abs(newTransX) > transXlimit) {
+//                    newTransX = newTransX > 0 ? transXlimit : -transXlimit;
+//                }
 
                 float newTransY = canvasView.getTranslationY() + deltaMovedY;
-                float transYlimit = (canvasView.getScaleY() - 1) * screenNum * getHeight() / 2;
-                if (newTransY >= 0) {
-                    newTransY = newTransY > transYlimit ? transYlimit : newTransY;
-                } else {
-                    float multiScreenTransYlimit = transYlimit + (screenNum-1) * getHeight();
-                    newTransY = -newTransY > multiScreenTransYlimit ? -multiScreenTransYlimit : newTransY;
-                }
+//                float transYlimit = (canvasView.getScaleY() - 1) * screenNum * getHeight() / 2;
+//                if (newTransY >= 0) {
+//                    newTransY = newTransY > transYlimit ? transYlimit : newTransY;
+//                } else {
+//                    float multiScreenTransYlimit = transYlimit + (screenNum-1) * getHeight();
+//                    newTransY = -newTransY > multiScreenTransYlimit ? -multiScreenTransYlimit : newTransY;
+//                }
                 canvasView.setTranslationX(newTransX);
                 canvasView.setTranslationY(newTransY);
             }
@@ -175,16 +177,105 @@ public class SketchView extends FrameLayout {
                     canvasView.invalidate();
                     return;
                 }
-                if (scaleFactor < 1) {
-                    scaleFactor = 1;
-                }
+//                if (scaleFactor < 1) {
+//                    scaleFactor = 1;
+//                }
                 if (scaleFactor > 5) {
                     scaleFactor = 5;
                 }
                 canvasView.setScaleX(scaleFactor);
                 canvasView.setScaleY(scaleFactor);
             }
+
+            @Override
+            public void onUp(float upX, float upY, long upTime, float xVelocity, float yVelocity) {
+                clampBoundsIfNeed();
+            }
         });
+    }
+
+    private void clampBoundsIfNeed() {
+        float scaleFactor = canvasView.getScaleX();
+        if (scaleFactor >= 1) {
+            float transXlimit = (canvasView.getScaleX() - 1) * getWidth() / 2;
+            float transX = canvasView.getTranslationX();
+            float transXNeedOffset = 0;
+            if (Math.abs(transX) > transXlimit) {
+                transXNeedOffset = transX > 0 ? (transXlimit - transX) : (-transXlimit - transX);
+            }
+
+            float transYlimit = (canvasView.getScaleY() - 1) * screenNum * getHeight() / 2;
+            float transY = canvasView.getTranslationY();
+            float transYNeedOffset = 0;
+            if (transY >= 0) {
+                transYNeedOffset = transY > transYlimit ? (transYlimit - transY) : 0;
+            } else {
+                float multiScreenTransYlimit = transYlimit + (screenNum-1) * getHeight();
+                transYNeedOffset = (-transY > multiScreenTransYlimit) ? (-multiScreenTransYlimit - transY) : 0;
+            }
+
+            if (transXNeedOffset != 0) {
+                animTransX(transX, transX + transXNeedOffset);
+            }
+            if (transYNeedOffset != 0) {
+                animTransY(transY, transY + transYNeedOffset);
+            }
+        } else {
+            animScale(canvasView.getScaleX());
+            float transX = canvasView.getTranslationX();
+            if (transX != 0) {
+                animTransX(transX, 0);
+            }
+            float transY = canvasView.getTranslationY();
+            if (transY > 0) {
+                animTransY(transY, 0);
+            } else {
+                float transYlimit = (screenNum-1) * getHeight();
+                if (-transY > transYlimit) {
+                    animTransY(transY, -transYlimit);
+                }
+            }
+        }
+    }
+
+    private final long animDuration = 250;
+    private DecelerateInterpolator interpolator = new DecelerateInterpolator();
+
+    private void animTransX(float start, float end) {
+        ValueAnimator vaX = ValueAnimator.ofFloat(start, end).setDuration(animDuration);
+        vaX.setInterpolator(interpolator);
+        vaX.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
+            @Override
+            public void onAnimationUpdate(ValueAnimator animation) {
+                canvasView.setTranslationX((float)animation.getAnimatedValue());
+            }
+        });
+        vaX.start();
+    }
+
+    private void animTransY(float start, float end) {
+        ValueAnimator vaY = ValueAnimator.ofFloat(start, end).setDuration(animDuration);
+        vaY.setInterpolator(interpolator);
+        vaY.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
+            @Override
+            public void onAnimationUpdate(ValueAnimator animation) {
+                canvasView.setTranslationY((float)animation.getAnimatedValue());
+            }
+        });
+        vaY.start();
+    }
+
+    private void animScale(float start) {
+        ValueAnimator vaScale = ValueAnimator.ofFloat(start, 1).setDuration(animDuration);
+        vaScale.setInterpolator(interpolator);
+        vaScale.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
+            @Override
+            public void onAnimationUpdate(ValueAnimator animation) {
+                canvasView.setScaleX((float)animation.getAnimatedValue());
+                canvasView.setScaleY((float)animation.getAnimatedValue());
+            }
+        });
+        vaScale.start();
     }
 
     @Override
