@@ -1,7 +1,11 @@
 package com.chenzhifei.gesture;
 
+import android.Manifest;
+import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.os.Build;
+import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.SwitchCompat;
@@ -10,12 +14,14 @@ import android.widget.RadioGroup;
 
 public class MainActivity extends AppCompatActivity {
 
+    private SketchView sketchView;
+
     @Override
     protected void onCreate(final Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        final SketchView sketchView = findViewById(R.id.sketch_view);
+        sketchView = findViewById(R.id.sketch_view);
         Bitmap bp = BitmapFactory.decodeResource(getResources(), R.mipmap.ic_launcher);
         sketchView.setImageBitmap(bp);
 
@@ -37,7 +43,14 @@ public class MainActivity extends AppCompatActivity {
         findViewById(R.id.save_to_jpg).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                sketchView.saveToJPG();
+                if (Build.VERSION.SDK_INT > 22) {
+                    int result = checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE);
+                    if (result != PackageManager.PERMISSION_GRANTED) {
+                        requestPermissions(new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 1);
+                    } else {
+                        sketchView.saveToJPG();
+                    }
+                }
             }
         });
         RadioGroup rg = findViewById(R.id.radio_group);
@@ -73,4 +86,13 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == 1) {
+            if (grantResults[0] == 0) {
+                sketchView.saveToJPG();
+            }
+        }
+    }
 }
