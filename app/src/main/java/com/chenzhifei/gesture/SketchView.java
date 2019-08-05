@@ -4,6 +4,7 @@ import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.DashPathEffect;
 import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.graphics.Path;
@@ -33,8 +34,6 @@ public class SketchView extends FrameLayout {
     private int screenNum = 1;
     private int maxScreens = 3;
     private boolean isOperatingImage = true;
-
-    private Matrix imageMatrix = new Matrix();
 
     private CanvasView canvasView;
     private List<PathWithConfig> pathList = new ArrayList<>();
@@ -74,6 +73,8 @@ public class SketchView extends FrameLayout {
     public void setImageBitmap(Bitmap bitmap) {
         canvasView.setImageBitmap(bitmap);
         canvasView.setScaleType(ImageView.ScaleType.MATRIX);
+        canvasView.imageW = bitmap.getWidth();
+        canvasView.imageH = bitmap.getHeight();
     }
 
     public void setPenColor(String color) {
@@ -104,6 +105,7 @@ public class SketchView extends FrameLayout {
 
     public boolean setOperatingImage() {
         isOperatingImage = !isOperatingImage;
+        canvasView.invalidate();
         return isOperatingImage;
     }
 
@@ -135,7 +137,7 @@ public class SketchView extends FrameLayout {
             public void onMoved(float moveX, float moveY, float deltaMovedX, float deltaMovedY, long deltaMilliseconds, int fingers) {
                 if (isOperatingImage) {
                     float canvasViewScale = canvasView.getScaleX();
-                    imageMatrix.postTranslate(deltaMovedX/canvasViewScale, deltaMovedY/canvasViewScale);
+                    canvasView.imageMatrix.postTranslate(deltaMovedX/canvasViewScale, deltaMovedY/canvasViewScale);
                     canvasView.invalidate();
                     return;
                 }
@@ -169,7 +171,7 @@ public class SketchView extends FrameLayout {
                 if (isOperatingImage) {
                     float canvasViewScale = canvasView.getScaleX(); // 防止双倍缩放
                     // 这里变换具有累加效果
-                    imageMatrix.preScale(scaleFactor/canvasViewScale, scaleFactor/canvasViewScale);
+                    canvasView.imageMatrix.preScale(scaleFactor/canvasViewScale, scaleFactor/canvasViewScale);
                     canvasView.invalidate();
                     return;
                 }
@@ -232,6 +234,10 @@ public class SketchView extends FrameLayout {
         private int rubberTipColor, rubberBoundsColor;
         private float moveX, moveY;
 
+        private Paint imageBoundsTipPaint = new Paint();
+        private Matrix imageMatrix = new Matrix();
+        private int imageW, imageH;
+
         public CanvasView(Context context) {
             this(context, null);
         }
@@ -244,6 +250,11 @@ public class SketchView extends FrameLayout {
             super(context, attrs, defStyle);
             rubberTipColor = Color.parseColor("#ffffff");
             rubberBoundsColor = Color.parseColor("#666666");
+
+            imageBoundsTipPaint.setStyle(Paint.Style.STROKE);
+            imageBoundsTipPaint.setStrokeWidth(3);
+            imageBoundsTipPaint.setColor(Color.parseColor("#666666"));
+            imageBoundsTipPaint.setPathEffect(new DashPathEffect(new float[]{20, 20},0));
         }
 
         @Override
@@ -275,6 +286,11 @@ public class SketchView extends FrameLayout {
                 canvas.drawCircle(moveX, moveY, paintRubberWidth/2, rubberTipPaint);
                 rubberTipPaint.setColor(rubberTipColor);
                 canvas.drawCircle(moveX, moveY, paintRubberWidth/2 - 1, rubberTipPaint);
+            }
+            if (isOperatingImage) {
+              float[] points = {0, 0, imageW, 0, imageW, imageH, 0, imageH};
+              imageMatrix.mapPoints(points);
+              canvas.drawRect(points[0], points[1], points[4], points[5], imageBoundsTipPaint);
             }
         }
 
