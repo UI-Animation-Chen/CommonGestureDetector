@@ -285,6 +285,7 @@ public class SketchView extends FrameLayout {
                     PathWithConfig p = new PathWithConfig(paintPenColor, lineMode, event.getX(), event.getY());
                     if (lineMode != LINE_MODE_STRAIGHT) {
                         p.path.moveTo(event.getX(), event.getY());
+                        p.path.lineTo(event.getX()+0.01f, event.getY()); // 按下不动也可以画一个点
                     }
                     pathList.add(p);
                     break;
