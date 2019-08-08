@@ -13,7 +13,6 @@ import android.graphics.PorterDuff;
 import android.graphics.PorterDuffXfermode;
 import android.os.SystemClock;
 import android.util.AttributeSet;
-import android.util.Log;
 import android.view.MotionEvent;
 import android.view.Surface;
 import android.view.SurfaceHolder;
@@ -93,33 +92,76 @@ public class SketchViewSV extends FrameLayout {
     paintRubber.setStrokeJoin(Paint.Join.ROUND);
   }
 
+  public void setImageBitmap(Bitmap bitmap) {
+    //canvasView.setImageBitmap(bitmap);
+    //canvasView.setScaleType(ImageView.ScaleType.MATRIX);
+    canvasView.imageW = bitmap.getWidth();
+    canvasView.imageH = bitmap.getHeight();
+  }
+
+  public void setPenColor(String color) {
+    paintPenColor = color;
+  }
+
+  public void setPenWidth(float penWidth) {
+    paintPenWidth = penWidth;
+  }
+
+  public void setRubberWidth(float rubberWidth) {
+    paintRubberWidth = rubberWidth;
+  }
+
+  public void setMaxScreens(int maxScreens) {
+    this.maxScreens = maxScreens;
+  }
+
+  public void addScreenNum() {
+    if (screenNum >= maxScreens) {
+      return;
+    }
+    screenNum++;
+    FrameLayout.LayoutParams p = (FrameLayout.LayoutParams)canvasView.getLayoutParams();
+    p.height = this.getHeight() * screenNum;
+    canvasView.setLayoutParams(p);
+  }
+
+  public boolean setOperatingImage() {
+    isOperatingImage = !isOperatingImage;
+    canvasView.invalidate();
+    return isOperatingImage;
+  }
+
+  public void setLineMode(int lineMode) {
+    this.lineMode = lineMode;
+  }
+
   private void setGestureDetector() {
     twoFingersGestureDetector = new TwoFingersGestureDetector();
     twoFingersGestureDetector.setTwoFingersGestureListener(new TwoFingersGestureDetector.TwoFingersGestureListener() {
       @Override
       public void onMoved(float moveX, float moveY, float deltaMovedX, float deltaMovedY, long deltaMilliseconds, int fingers) {
         if (isOperatingImage) {
-          float canvasViewScale = canvasView.getScaleX();
+          float canvasViewScale = canvasView.scale;
           canvasView.imageMatrix.postTranslate(deltaMovedX/canvasViewScale, deltaMovedY/canvasViewScale);
           canvasView.invalidate();
           return;
         }
-        float newTransX = canvasView.getTranslationX() + deltaMovedX;
-//                float transXlimit = (canvasView.getScaleX() - 1) * getWidth() / 2;
-//                if (Math.abs(newTransX) > transXlimit) {
-//                    newTransX = newTransX > 0 ? transXlimit : -transXlimit;
-//                }
+        float newTransX = canvasView.tranX + deltaMovedX;
+//        float transXlimit = (canvasView.getScaleX() - 1) * getWidth() / 2;
+//        if (Math.abs(newTransX) > transXlimit) {
+//            newTransX = newTransX > 0 ? transXlimit : -transXlimit;
+//        }
 
-        float newTransY = canvasView.getTranslationY() + deltaMovedY;
-//                float transYlimit = (canvasView.getScaleY() - 1) * screenNum * getHeight() / 2;
-//                if (newTransY >= 0) {
-//                    newTransY = newTransY > transYlimit ? transYlimit : newTransY;
-//                } else {
-//                    float multiScreenTransYlimit = transYlimit + (screenNum-1) * getHeight();
-//                    newTransY = -newTransY > multiScreenTransYlimit ? -multiScreenTransYlimit : newTransY;
-//                }
-        canvasView.setTranslationX(newTransX);
-        canvasView.setTranslationY(newTransY);
+        float newTransY = canvasView.tranY + deltaMovedY;
+//        float transYlimit = (canvasView.getScaleY() - 1) * screenNum * getHeight() / 2;
+//        if (newTransY >= 0) {
+//            newTransY = newTransY > transYlimit ? transYlimit : newTransY;
+//        } else {
+//            float multiScreenTransYlimit = transYlimit + (screenNum-1) * getHeight();
+//            newTransY = -newTransY > multiScreenTransYlimit ? -multiScreenTransYlimit : newTransY;
+//        }
+        canvasView.tranX = newTransX;
+        canvasView.tranY = newTransY;
       }
 
       @Override
@@ -129,23 +171,22 @@ public class SketchViewSV extends FrameLayout {
 
       @Override
       public void onScaled(float deltaScaledX, float deltaScaledY, float deltaScaledDistance, long deltaMilliseconds) {
-        float scaleFactor = canvasView.getScaleX();
+        float scaleFactor = canvasView.scale;
         scaleFactor += deltaScaledDistance * scaleFactor / canvasView.getWidth();
         if (isOperatingImage) {
-          float canvasViewScale = canvasView.getScaleX(); // 防止双倍缩放
+          float canvasViewScale = canvasView.scale; // 防止双倍缩放
           // 这里变换具有累加效果
           canvasView.imageMatrix.preScale(scaleFactor/canvasViewScale, scaleFactor/canvasViewScale);
           canvasView.invalidate();
           return;
         }
-//                if (scaleFactor < 1) {
-//                    scaleFactor = 1;
-//                }
+//        if (scaleFactor < 1) {
+//            scaleFactor = 1;
+//        }
         if (scaleFactor > 5) {
           scaleFactor = 5;
         }
-        canvasView.setScaleX(scaleFactor);
-        canvasView.setScaleY(scaleFactor);
+        canvasView.scale = scaleFactor;
       }
 
       @Override
@@ -279,9 +320,6 @@ public class SketchViewSV extends FrameLayout {
 
   private class CanvasViewSV extends SurfaceView implements SurfaceHolder.Callback {
 
-    private Bitmap sketchBitmap;
-    private Canvas sketchCanvas;
-    private Paint sketchPaint = new Paint();
     private Paint rubberTipPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private int rubberTipColor, rubberBoundsColor;
     private float moveX, moveY;
@@ -290,7 +328,7 @@ public class SketchViewSV extends FrameLayout {
     private Matrix imageMatrix = new Matrix();
     private int imageW, imageH;
 
-    private final Object surfaceLock = new Object();
+    private float tranX = 0, tranY = 0, scale = 1;
 
     public CanvasViewSV(Context context) {
       this(context, null);
@@ -315,75 +353,61 @@ public class SketchViewSV extends FrameLayout {
     @Override
     protected void onSizeChanged(int w, int h, int oldw, int oldh) {
       super.onSizeChanged(w, h, oldw, oldh);
-      sketchBitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
-      sketchCanvas = new Canvas(sketchBitmap);
     }
 
     private long currTime;
 
     private void drawContent() {
-      //setImageMatrix(imageMatrix);
-//      synchronized (surfaceLock) {
-//        if (canvasSurface != null) {
-//          Canvas canvas = canvasSurface.lockCanvas(null);
-//          canvas.drawColor(Color.parseColor("#cccccc"));
-//          canvasSurface.unlockCanvasAndPost(canvas);
-//        } else {
-//          return;
-//        }
-//      }
-
       long currTime = SystemClock.currentThreadTimeMillis();
-      Log.d("--==--", "" + (currTime - this.currTime));
+      //Log.d("--==--", "" + (currTime - this.currTime));
       this.currTime = currTime;
 
-      synchronized (surfaceLock) {
-        if (canvasSurface != null) {
-          sketchCanvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR);
-          for (PathWithConfig p : pathList) {
-            if (canvasSurface == null) {
-              return;
-            }
-            if (p.lineMode == LINE_MODE_RUBBER) {
-              sketchCanvas.drawPath(p.path, paintRubber);
-            } else if (p.lineMode == LINE_MODE_CURVE) {
-              paintPen.setColor(p.color);
-              sketchCanvas.drawPath(p.path, paintPen);
-            } else {
-              paintPen.setColor(p.color);
-              sketchCanvas.drawLine(p.lineStart[0], p.lineStart[1], p.lineEnd[0], p.lineEnd[1], paintPen);
-            }
+      //setImageMatrix(imageMatrix);
+      Canvas canvas = canvasSurface.lockCanvas(null);
+      canvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR);
+      canvas.translate(tranX, tranY);
+      canvas.scale(scale, scale);
+      try {
+        for (int i = 0, size = pathList.size(); i < size; i++) {
+          PathWithConfig p = pathList.get(i);
+          if (p.lineMode == LINE_MODE_RUBBER) {
+            canvas.drawPath(p.path, paintRubber);
+          } else if (p.lineMode == LINE_MODE_CURVE) {
+            paintPen.setColor(p.color);
+            canvas.drawPath(p.path, paintPen);
+          } else {
+            paintPen.setColor(p.color);
+            canvas.drawLine(p.lineStart[0], p.lineStart[1], p.lineEnd[0], p.lineEnd[1], paintPen);
           }
-          Canvas canvas = canvasSurface.lockCanvas(null);
-          canvas.drawBitmap(sketchBitmap, 0, 0, sketchPaint);
-          if (lineMode == LINE_MODE_RUBBER && moveX != -1) {
-            rubberTipPaint.setColor(rubberBoundsColor);
-            canvas.drawCircle(moveX, moveY, paintRubberWidth / 2, rubberTipPaint);
-            rubberTipPaint.setColor(rubberTipColor);
-            canvas.drawCircle(moveX, moveY, paintRubberWidth / 2 - 1, rubberTipPaint);
-          }
-          if (isOperatingImage) {
-            float[] points = {0, 0, imageW, 0, imageW, imageH, 0, imageH};
-            imageMatrix.mapPoints(points);
-            canvas.drawRect(points[0], points[1], points[4], points[5], imageBoundsTipPaint);
-          }
-          canvasSurface.unlockCanvasAndPost(canvas);
         }
+      } catch (IndexOutOfBoundsException e) {
+        e.printStackTrace();
       }
+      if (lineMode == LINE_MODE_RUBBER && moveX != -1) {
+        rubberTipPaint.setColor(rubberBoundsColor);
+        canvas.drawCircle(moveX, moveY, paintRubberWidth / 2, rubberTipPaint);
+        rubberTipPaint.setColor(rubberTipColor);
+        canvas.drawCircle(moveX, moveY, paintRubberWidth / 2 - 1, rubberTipPaint);
+      }
+      if (isOperatingImage) {
+        float[] points = {0, 0, imageW, 0, imageW, imageH, 0, imageH};
+        imageMatrix.mapPoints(points);
+        canvas.drawRect(points[0], points[1], points[4], points[5], imageBoundsTipPaint);
+      }
+      canvasSurface.unlockCanvasAndPost(canvas);
     }
 
     @Override
     public boolean onTouchEvent(MotionEvent event) {
       switch (event.getAction()) {
         case MotionEvent.ACTION_DOWN:
-          SketchViewSV.PathWithConfig p = new SketchViewSV.PathWithConfig(paintPenColor, lineMode, event.getX(), event.getY());
+          SketchViewSV.PathWithConfig p =
+            new SketchViewSV.PathWithConfig(paintPenColor, lineMode, event.getX(), event.getY());
           if (lineMode != LINE_MODE_STRAIGHT) {
             p.path.moveTo(event.getX(), event.getY());
             p.path.lineTo(event.getX()+0.01f, event.getY()); // 按下不动也可以画一个点
           }
-          synchronized (surfaceLock) {
-            pathList.add(p);
-          }
+          pathList.add(p);
           break;
         case MotionEvent.ACTION_MOVE:
           moveX = event.getX();
@@ -402,36 +426,36 @@ public class SketchViewSV extends FrameLayout {
     }
 
     private boolean exitDrawThread = false;
+    private Thread renderThread;
 
     @Override
     public void surfaceCreated(SurfaceHolder surfaceHolder) {
-      synchronized (surfaceLock) {
-        canvasSurface = surfaceHolder.getSurface();
-      }
+      canvasSurface = surfaceHolder.getSurface();
       exitDrawThread = false;
-      new Thread(new Runnable() {
+      renderThread = new Thread(new Runnable() {
         @Override
         public void run() {
           while (!exitDrawThread) {
             drawContent();
           }
         }
-      }).start();
+      });
+      renderThread.start();
     }
 
     @Override
     public void surfaceChanged(SurfaceHolder surfaceHolder, int i, int i1, int i2) {
-      synchronized (surfaceLock) {
-        canvasSurface = surfaceHolder.getSurface();
-      }
     }
 
     @Override
     public void surfaceDestroyed(SurfaceHolder surfaceHolder) {
       exitDrawThread = true;
-      synchronized (surfaceLock) {
-        canvasSurface = null;
+      try {
+        renderThread.join();
+      } catch (InterruptedException e) {
+        e.printStackTrace();
       }
+      canvasSurface = null;
     }
   }
 

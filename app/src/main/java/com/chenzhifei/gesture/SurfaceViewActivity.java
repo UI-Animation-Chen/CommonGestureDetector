@@ -29,7 +29,7 @@ public class SurfaceViewActivity extends AppCompatActivity {
     switchView.setOnClickListener(new View.OnClickListener() {
       @Override
       public void onClick(View v) {
-        //((SwitchCompat)v).setChecked(sketchView.setOperatingImage());
+        ((SwitchCompat)v).setChecked(sketchView.setOperatingImage());
       }
     });
     switchView.setChecked(true);
@@ -37,7 +37,7 @@ public class SurfaceViewActivity extends AppCompatActivity {
     findViewById(R.id.add_a_screen).setOnClickListener(new View.OnClickListener() {
       @Override
       public void onClick(View v) {
-        //sketchView.addScreenNum();
+        sketchView.addScreenNum();
       }
     });
     findViewById(R.id.save_to_jpg).setOnClickListener(new View.OnClickListener() {
@@ -61,13 +61,13 @@ public class SurfaceViewActivity extends AppCompatActivity {
       public void onCheckedChanged(RadioGroup group, int checkedId) {
         switch (checkedId) {
           case R.id.curve:
-            //sketchView.setLineMode(SketchView.LINE_MODE_CURVE);
+            sketchView.setLineMode(SketchView.LINE_MODE_CURVE);
             break;
           case R.id.straight_line:
-            //sketchView.setLineMode(SketchView.LINE_MODE_STRAIGHT);
+            sketchView.setLineMode(SketchView.LINE_MODE_STRAIGHT);
             break;
           case R.id.rubber:
-            //sketchView.setLineMode(SketchView.LINE_MODE_RUBBER);
+            sketchView.setLineMode(SketchView.LINE_MODE_RUBBER);
             break;
         }
       }
@@ -78,10 +78,10 @@ public class SurfaceViewActivity extends AppCompatActivity {
       public void onCheckedChanged(RadioGroup group, int checkedId) {
         switch (checkedId) {
           case R.id.green:
-            //sketchView.setPenColor("#00ff00");
+            sketchView.setPenColor("#00ff00");
             break;
           case R.id.red:
-            //sketchView.setPenColor("#ff0000");
+            sketchView.setPenColor("#ff0000");
             break;
         }
       }
