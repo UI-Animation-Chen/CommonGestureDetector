@@ -1,6 +1,7 @@
 package com.chenzhifei.gesture;
 
 import android.Manifest;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -84,6 +85,13 @@ public class MainActivity extends AppCompatActivity {
                         sketchView.setPenColor("#ff0000");
                         break;
                 }
+            }
+        });
+        findViewById(R.id.start_activity).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Intent i = new Intent(MainActivity.this, SurfaceViewActivity.class);
+                startActivity(i);
             }
         });
     }
