@@ -9,8 +9,12 @@ import android.graphics.DashPathEffect;
 import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.graphics.Path;
+import android.graphics.PixelFormat;
 import android.graphics.PorterDuff;
 import android.graphics.PorterDuffXfermode;
+import android.os.Handler;
+import android.os.Looper;
+import android.os.Message;
 import android.os.SystemClock;
 import android.util.AttributeSet;
 import android.view.MotionEvent;
@@ -41,7 +45,7 @@ public class SketchViewSV extends FrameLayout {
   private List<SketchViewSV.PathWithConfig> pathList = new ArrayList<>();
   private Paint paintPen;
   private String paintPenColor = "#00ff00";
-  private float paintPenWidth = 2;
+  private float paintPenWidth = 10;
   private Paint paintRubber;
   private float paintRubberWidth = 50;
 
@@ -64,14 +68,14 @@ public class SketchViewSV extends FrameLayout {
 
   private void addCanvasView(Context context) {
     canvasView = new CanvasViewSV(context);
-//    canvasView.setBackgroundColor(Color.parseColor("#cccccc"));
-//    canvasView.setZOrderOnTop(true);
     addView(canvasView);
     FrameLayout.LayoutParams p = (FrameLayout.LayoutParams)canvasView.getLayoutParams();
     p.width = LayoutParams.MATCH_PARENT;
     p.height = LayoutParams.MATCH_PARENT;
     canvasView.setLayoutParams(p);
 
+//    canvasView.setZOrderOnTop(true);
+    canvasView.getHolder().setFormat(PixelFormat.RGBA_8888);
     canvasView.getHolder().addCallback(canvasView);
   }
 
@@ -165,12 +169,13 @@ public class SketchViewSV extends FrameLayout {
       }
 
       @Override
-      public void onRotated(float deltaRotatedDeg, long deltaMilliseconds) {
+      public void onRotated(float centerX, float centerY, float deltaRotatedDeg, long deltaMilliseconds) {
         //canvasView.setRotation(canvasView.getRotation() + deltaRotatedDeg);
       }
 
       @Override
-      public void onScaled(float deltaScaledX, float deltaScaledY, float deltaScaledDistance, long deltaMilliseconds) {
+      public void onScaled(float centerX, float centerY, float deltaScaledX, float deltaScaledY,
+                           float deltaScaledDistance, long deltaMilliseconds) {
         float scaleFactor = canvasView.scale;
         scaleFactor += deltaScaledDistance * scaleFactor / canvasView.getWidth();
         if (isOperatingImage) {
@@ -197,17 +202,17 @@ public class SketchViewSV extends FrameLayout {
   }
 
   private void clampBoundsIfNeed() {
-    float scaleFactor = canvasView.getScaleX();
+    float scaleFactor = canvasView.scale;
     if (scaleFactor >= 1) {
-      float transXlimit = (canvasView.getScaleX() - 1) * getWidth() / 2;
-      float transX = canvasView.getTranslationX();
+      float transXlimit = (canvasView.scale - 1) * getWidth() / 2;
+      float transX = canvasView.tranX;
       float transXNeedOffset = 0;
       if (Math.abs(transX) > transXlimit) {
         transXNeedOffset = transX > 0 ? (transXlimit - transX) : (-transXlimit - transX);
       }
 
-      float transYlimit = (canvasView.getScaleY() - 1) * screenNum * getHeight() / 2;
-      float transY = canvasView.getTranslationY();
+      float transYlimit = (canvasView.scale - 1) * screenNum * getHeight() / 2;
+      float transY = canvasView.tranY;
       float transYNeedOffset = 0;
       if (transY >= 0) {
         transYNeedOffset = transY > transYlimit ? (transYlimit - transY) : 0;
@@ -223,12 +228,12 @@ public class SketchViewSV extends FrameLayout {
         animTransY(transY, transY + transYNeedOffset);
       }
     } else {
-      animScale(canvasView.getScaleX());
-      float transX = canvasView.getTranslationX();
+      animScale(canvasView.scale);
+      float transX = canvasView.tranX;
       if (transX != 0) {
         animTransX(transX, 0);
       }
-      float transY = canvasView.getTranslationY();
+      float transY = canvasView.tranY;
       if (transY > 0) {
         animTransY(transY, 0);
       } else {
@@ -249,7 +254,7 @@ public class SketchViewSV extends FrameLayout {
     vaX.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
       @Override
       public void onAnimationUpdate(ValueAnimator animation) {
-        canvasView.setTranslationX((float)animation.getAnimatedValue());
+        canvasView.tranX = (float)animation.getAnimatedValue();
       }
     });
     vaX.start();
@@ -261,7 +266,7 @@ public class SketchViewSV extends FrameLayout {
     vaY.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
       @Override
       public void onAnimationUpdate(ValueAnimator animation) {
-        canvasView.setTranslationY((float)animation.getAnimatedValue());
+        canvasView.tranY = (float)animation.getAnimatedValue();
       }
     });
     vaY.start();
@@ -273,8 +278,7 @@ public class SketchViewSV extends FrameLayout {
     vaScale.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
       @Override
       public void onAnimationUpdate(ValueAnimator animation) {
-        canvasView.setScaleX((float)animation.getAnimatedValue());
-        canvasView.setScaleY((float)animation.getAnimatedValue());
+        canvasView.scale = (float)animation.getAnimatedValue();
       }
     });
     vaScale.start();
@@ -283,6 +287,7 @@ public class SketchViewSV extends FrameLayout {
   @Override
   public boolean onTouchEvent(MotionEvent event) {
     twoFingersGestureDetector.onTouchEvent(event);
+    canvasView.drawContentOnce();
     return true;
   }
 
@@ -355,34 +360,40 @@ public class SketchViewSV extends FrameLayout {
       super.onSizeChanged(w, h, oldw, oldh);
     }
 
-    private long currTime;
-
     private void drawContent() {
-      long currTime = SystemClock.currentThreadTimeMillis();
-      //Log.d("--==--", "" + (currTime - this.currTime));
-      this.currTime = currTime;
-
       //setImageMatrix(imageMatrix);
       Canvas canvas = canvasSurface.lockCanvas(null);
-      canvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR);
+      if (canvas == null) return;
+
       canvas.translate(tranX, tranY);
       canvas.scale(scale, scale);
       try {
-        for (int i = 0, size = pathList.size(); i < size; i++) {
-          PathWithConfig p = pathList.get(i);
-          if (p.lineMode == LINE_MODE_RUBBER) {
-            canvas.drawPath(p.path, paintRubber);
-          } else if (p.lineMode == LINE_MODE_CURVE) {
-            paintPen.setColor(p.color);
-            canvas.drawPath(p.path, paintPen);
-          } else {
-            paintPen.setColor(p.color);
-            canvas.drawLine(p.lineStart[0], p.lineStart[1], p.lineEnd[0], p.lineEnd[1], paintPen);
-          }
+//        for (int i = 0, size = pathList.size(); i < size; i++) {
+//          PathWithConfig p = pathList.get(i);
+//          if (p.lineMode == LINE_MODE_RUBBER) {
+//            canvas.drawPath(p.path, paintRubber);
+//          } else if (p.lineMode == LINE_MODE_CURVE) {
+//            paintPen.setColor(p.color);
+//            canvas.drawPath(p.path, paintPen);
+//          } else {
+//            paintPen.setColor(p.color);
+//            canvas.drawLine(p.lineStart[0], p.lineStart[1], p.lineEnd[0], p.lineEnd[1], paintPen);
+//          }
+//        }
+        PathWithConfig p = pathList.get(pathList.size() - 1);
+        if (p.lineMode == LINE_MODE_RUBBER) {
+          canvas.drawPath(p.path, paintRubber);
+        } else if (p.lineMode == LINE_MODE_CURVE) {
+          paintPen.setColor(p.color);
+          canvas.drawPath(p.path, paintPen);
+        } else {
+          paintPen.setColor(p.color);
+          canvas.drawLine(p.lineStart[0], p.lineStart[1], p.lineEnd[0], p.lineEnd[1], paintPen);
         }
       } catch (IndexOutOfBoundsException e) {
         e.printStackTrace();
       }
+
       if (lineMode == LINE_MODE_RUBBER && moveX != -1) {
         rubberTipPaint.setColor(rubberBoundsColor);
         canvas.drawCircle(moveX, moveY, paintRubberWidth / 2, rubberTipPaint);
@@ -422,22 +433,32 @@ public class SketchViewSV extends FrameLayout {
           moveX = -1;
           break;
       }
+      drawContentOnce();
       return true;
     }
 
-    private boolean exitDrawThread = false;
     private Thread renderThread;
+    private Handler renderHandler;
+
+    private void drawContentOnce() {
+      renderHandler.removeCallbacksAndMessages(null);
+      renderHandler.post(new Runnable() {
+        @Override
+        public void run() {
+          drawContent();
+        }
+      });
+    }
 
     @Override
     public void surfaceCreated(SurfaceHolder surfaceHolder) {
       canvasSurface = surfaceHolder.getSurface();
-      exitDrawThread = false;
       renderThread = new Thread(new Runnable() {
         @Override
         public void run() {
-          while (!exitDrawThread) {
-            drawContent();
-          }
+          Looper.prepare();
+          renderHandler = new Handler();
+          Looper.loop();
         }
       });
       renderThread.start();
@@ -449,7 +470,7 @@ public class SketchViewSV extends FrameLayout {
 
     @Override
     public void surfaceDestroyed(SurfaceHolder surfaceHolder) {
-      exitDrawThread = true;
+      renderHandler.getLooper().quit();
       try {
         renderThread.join();
       } catch (InterruptedException e) {

@@ -162,12 +162,13 @@ public class SketchView extends FrameLayout {
             }
 
             @Override
-            public void onRotated(float deltaRotatedDeg, long deltaMilliseconds) {
+            public void onRotated(float centerX, float centerY, float deltaRotatedDeg, long deltaMilliseconds) {
                 //canvasView.setRotation(canvasView.getRotation() + deltaRotatedDeg);
             }
 
             @Override
-            public void onScaled(float deltaScaledX, float deltaScaledY, float deltaScaledDistance, long deltaMilliseconds) {
+            public void onScaled(float centerX, float centerY, float deltaScaledX, float deltaScaledY,
+                                 float deltaScaledDistance, long deltaMilliseconds) {
                 float scaleFactor = canvasView.getScaleX();
                 scaleFactor += deltaScaledDistance * scaleFactor / canvasView.getWidth();
                 if (isOperatingImage) {

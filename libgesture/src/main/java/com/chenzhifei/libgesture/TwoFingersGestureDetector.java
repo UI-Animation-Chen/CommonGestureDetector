@@ -141,15 +141,14 @@ public class TwoFingersGestureDetector {
                     float deltaScaledY = getDeltaScaledYBetween2Events(event);
                     float currDeltaScaledDistance = getScaledDistanceBetween2Events(event);
 
-                    if (this.twoFingersGestureListener != null) {
-                        twoFingersGestureListener.onScaled(deltaScaledX, deltaScaledY,
-                                                           currDeltaScaledDistance, currDeltaMilliseconds);
-                        twoFingersGestureListener.onRotated(currDeltaRotatedDeg, currDeltaMilliseconds);
-                    }
-
-                    // handle move
                     newX = (event.getX(0) + event.getX(1)) / 2f;
                     newY = (event.getY(0) + event.getY(1)) / 2f;
+
+                    if (this.twoFingersGestureListener != null) {
+                        twoFingersGestureListener.onScaled(newX, newY, deltaScaledX, deltaScaledY,
+                                                           currDeltaScaledDistance, currDeltaMilliseconds);
+                        twoFingersGestureListener.onRotated(newX, newY, currDeltaRotatedDeg, currDeltaMilliseconds);
+                    }
                 } else {
                     newX = event.getX(0);
                     newY = event.getY(0);
@@ -297,11 +296,13 @@ public class TwoFingersGestureDetector {
     public static class TwoFingersGestureListener {
         public void onDown(float downX, float downY, long downTime) {};
 
-        public void onMoved(float moveX, float moveY, float deltaMovedX, float deltaMovedY, long deltaMilliseconds, int fingers) {}
+        public void onMoved(float moveX, float moveY, float deltaMovedX, float deltaMovedY,
+                            long deltaMilliseconds, int fingers) {}
 
-        public void onRotated(float deltaRotatedDeg, long deltaMilliseconds) {}
+        public void onRotated(float centerX, float centerY, float deltaRotatedDeg, long deltaMilliseconds) {}
 
-        public void onScaled(float deltaScaledX, float deltaScaledY, float deltaScaledDistance, long deltaMilliseconds) {}
+        public void onScaled(float centerX, float centerY, float deltaScaledX, float deltaScaledY,
+                             float deltaScaledDistance, long deltaMilliseconds) {}
 
         // velocity: pixels/second   degrees/second
         public void onUp(float upX, float upY, long upTime, float xVelocity, float yVelocity) {}
