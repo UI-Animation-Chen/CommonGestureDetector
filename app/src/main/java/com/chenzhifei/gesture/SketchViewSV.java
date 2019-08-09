@@ -255,6 +255,7 @@ public class SketchViewSV extends FrameLayout {
       @Override
       public void onAnimationUpdate(ValueAnimator animation) {
         canvasView.tranX = (float)animation.getAnimatedValue();
+        canvasView.drawContentOnce();
       }
     });
     vaX.start();
@@ -267,6 +268,7 @@ public class SketchViewSV extends FrameLayout {
       @Override
       public void onAnimationUpdate(ValueAnimator animation) {
         canvasView.tranY = (float)animation.getAnimatedValue();
+        canvasView.drawContentOnce();
       }
     });
     vaY.start();
@@ -279,6 +281,7 @@ public class SketchViewSV extends FrameLayout {
       @Override
       public void onAnimationUpdate(ValueAnimator animation) {
         canvasView.scale = (float)animation.getAnimatedValue();
+        canvasView.drawContentOnce();
       }
     });
     vaScale.start();
@@ -365,31 +368,33 @@ public class SketchViewSV extends FrameLayout {
       Canvas canvas = canvasSurface.lockCanvas(null);
       if (canvas == null) return;
 
+      canvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR);
+
       canvas.translate(tranX, tranY);
       canvas.scale(scale, scale);
       try {
-//        for (int i = 0, size = pathList.size(); i < size; i++) {
-//          PathWithConfig p = pathList.get(i);
-//          if (p.lineMode == LINE_MODE_RUBBER) {
-//            canvas.drawPath(p.path, paintRubber);
-//          } else if (p.lineMode == LINE_MODE_CURVE) {
-//            paintPen.setColor(p.color);
-//            canvas.drawPath(p.path, paintPen);
-//          } else {
-//            paintPen.setColor(p.color);
-//            canvas.drawLine(p.lineStart[0], p.lineStart[1], p.lineEnd[0], p.lineEnd[1], paintPen);
-//          }
-//        }
-        PathWithConfig p = pathList.get(pathList.size() - 1);
-        if (p.lineMode == LINE_MODE_RUBBER) {
-          canvas.drawPath(p.path, paintRubber);
-        } else if (p.lineMode == LINE_MODE_CURVE) {
-          paintPen.setColor(p.color);
-          canvas.drawPath(p.path, paintPen);
-        } else {
-          paintPen.setColor(p.color);
-          canvas.drawLine(p.lineStart[0], p.lineStart[1], p.lineEnd[0], p.lineEnd[1], paintPen);
+        for (int i = 0, size = pathList.size(); i < size; i++) {
+          PathWithConfig p = pathList.get(i);
+          if (p.lineMode == LINE_MODE_RUBBER) {
+            canvas.drawPath(p.path, paintRubber);
+          } else if (p.lineMode == LINE_MODE_CURVE) {
+            paintPen.setColor(p.color);
+            canvas.drawPath(p.path, paintPen);
+          } else {
+            paintPen.setColor(p.color);
+            canvas.drawLine(p.lineStart[0], p.lineStart[1], p.lineEnd[0], p.lineEnd[1], paintPen);
+          }
         }
+//        PathWithConfig p = pathList.get(pathList.size() - 1);
+//        if (p.lineMode == LINE_MODE_RUBBER) {
+//          canvas.drawPath(p.path, paintRubber);
+//        } else if (p.lineMode == LINE_MODE_CURVE) {
+//          paintPen.setColor(p.color);
+//          canvas.drawPath(p.path, paintPen);
+//        } else {
+//          paintPen.setColor(p.color);
+//          canvas.drawLine(p.lineStart[0], p.lineStart[1], p.lineEnd[0], p.lineEnd[1], paintPen);
+//        }
       } catch (IndexOutOfBoundsException e) {
         e.printStackTrace();
       }
