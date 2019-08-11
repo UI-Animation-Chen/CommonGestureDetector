@@ -336,6 +336,10 @@ public class SketchViewSV extends FrameLayout {
     private Matrix imageMatrix = new Matrix();
     private int imageW, imageH;
 
+    private Bitmap contentBitmap;
+    private Canvas contentCanvas;
+    private Matrix contentMatrix = new Matrix();
+
     private float tranX = 0, tranY = 0, scale = 1;
 
     public CanvasViewSV(Context context) {
@@ -365,51 +369,51 @@ public class SketchViewSV extends FrameLayout {
 
     private void drawContent() {
       //setImageMatrix(imageMatrix);
-      Canvas canvas = canvasSurface.lockCanvas(null);
-      if (canvas == null) return;
 
-      canvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR);
-
-      canvas.translate(tranX, tranY);
-      canvas.scale(scale, scale);
+      contentCanvas.translate(tranX, tranY);
+      contentCanvas.scale(scale, scale);
       try {
-        for (int i = 0, size = pathList.size(); i < size; i++) {
-          PathWithConfig p = pathList.get(i);
-          if (p.lineMode == LINE_MODE_RUBBER) {
-            canvas.drawPath(p.path, paintRubber);
-          } else if (p.lineMode == LINE_MODE_CURVE) {
-            paintPen.setColor(p.color);
-            canvas.drawPath(p.path, paintPen);
-          } else {
-            paintPen.setColor(p.color);
-            canvas.drawLine(p.lineStart[0], p.lineStart[1], p.lineEnd[0], p.lineEnd[1], paintPen);
-          }
-        }
-//        PathWithConfig p = pathList.get(pathList.size() - 1);
-//        if (p.lineMode == LINE_MODE_RUBBER) {
-//          canvas.drawPath(p.path, paintRubber);
-//        } else if (p.lineMode == LINE_MODE_CURVE) {
-//          paintPen.setColor(p.color);
-//          canvas.drawPath(p.path, paintPen);
-//        } else {
-//          paintPen.setColor(p.color);
-//          canvas.drawLine(p.lineStart[0], p.lineStart[1], p.lineEnd[0], p.lineEnd[1], paintPen);
+//        for (int i = 0, size = pathList.size(); i < size; i++) {
+//          PathWithConfig p = pathList.get(i);
+//          if (p.lineMode == LINE_MODE_RUBBER) {
+//            canvas.drawPath(p.path, paintRubber);
+//          } else if (p.lineMode == LINE_MODE_CURVE) {
+//            paintPen.setColor(p.color);
+//            canvas.drawPath(p.path, paintPen);
+//          } else {
+//            paintPen.setColor(p.color);
+//            canvas.drawLine(p.lineStart[0], p.lineStart[1], p.lineEnd[0], p.lineEnd[1], paintPen);
+//          }
 //        }
+        PathWithConfig p = pathList.get(pathList.size() - 1);
+        if (p.lineMode == LINE_MODE_RUBBER) {
+          contentCanvas.drawPath(p.path, paintRubber);
+        } else if (p.lineMode == LINE_MODE_CURVE) {
+          paintPen.setColor(p.color);
+          contentCanvas.drawPath(p.path, paintPen);
+        } else {
+          paintPen.setColor(p.color);
+          contentCanvas.drawLine(p.lineStart[0], p.lineStart[1], p.lineEnd[0], p.lineEnd[1], paintPen);
+        }
       } catch (IndexOutOfBoundsException e) {
         e.printStackTrace();
       }
 
       if (lineMode == LINE_MODE_RUBBER && moveX != -1) {
         rubberTipPaint.setColor(rubberBoundsColor);
-        canvas.drawCircle(moveX, moveY, paintRubberWidth / 2, rubberTipPaint);
+        contentCanvas.drawCircle(moveX, moveY, paintRubberWidth / 2, rubberTipPaint);
         rubberTipPaint.setColor(rubberTipColor);
-        canvas.drawCircle(moveX, moveY, paintRubberWidth / 2 - 1, rubberTipPaint);
+        contentCanvas.drawCircle(moveX, moveY, paintRubberWidth / 2 - 1, rubberTipPaint);
       }
       if (isOperatingImage) {
         float[] points = {0, 0, imageW, 0, imageW, imageH, 0, imageH};
         imageMatrix.mapPoints(points);
-        canvas.drawRect(points[0], points[1], points[4], points[5], imageBoundsTipPaint);
+        contentCanvas.drawRect(points[0], points[1], points[4], points[5], imageBoundsTipPaint);
       }
+
+      Canvas canvas = canvasSurface.lockCanvas(null);
+      if (canvas == null) return;
+      canvas.drawBitmap(contentBitmap, contentMatrix, null);
       canvasSurface.unlockCanvasAndPost(canvas);
     }
 
@@ -457,7 +461,16 @@ public class SketchViewSV extends FrameLayout {
 
     @Override
     public void surfaceCreated(SurfaceHolder surfaceHolder) {
+      contentBitmap = Bitmap.createBitmap(getWidth(), getHeight(), Bitmap.Config.ARGB_8888);
+      contentCanvas = new Canvas(contentBitmap);
+      contentCanvas.drawColor(Color.parseColor("#cccccc"));
+
       canvasSurface = surfaceHolder.getSurface();
+      Canvas canvas = canvasSurface.lockCanvas(null);
+      if (canvas == null) return;
+      canvas.drawBitmap(contentBitmap, contentMatrix, null);
+      canvasSurface.unlockCanvasAndPost(canvas);
+
       renderThread = new Thread(new Runnable() {
         @Override
         public void run() {
