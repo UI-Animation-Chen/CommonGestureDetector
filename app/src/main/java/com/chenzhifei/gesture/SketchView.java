@@ -63,8 +63,9 @@ public class SketchView extends FrameLayout {
     }
 
     private void addCanvasView(Context context) {
+        setBackgroundColor(Color.DKGRAY);
         canvasView = new CanvasView(context);
-        canvasView.setBackgroundColor(Color.parseColor("#cccccc"));
+        canvasView.setBackgroundColor(Color.WHITE);
         addView(canvasView);
         FrameLayout.LayoutParams p = (FrameLayout.LayoutParams)canvasView.getLayoutParams();
         p.width = LayoutParams.MATCH_PARENT;
@@ -159,6 +160,7 @@ public class SketchView extends FrameLayout {
 //                }
                 canvasView.setTranslationX(newTransX);
                 canvasView.setTranslationY(newTransY);
+                invalidate();
             }
 
             @Override
@@ -186,11 +188,13 @@ public class SketchView extends FrameLayout {
                 }
                 canvasView.setScaleX(scaleFactor);
                 canvasView.setScaleY(scaleFactor);
+                invalidate();
             }
 
             @Override
             public void onUp(float upX, float upY, long upTime, float xVelocity, float yVelocity) {
                 clampBoundsIfNeed();
+                invalidate();
             }
         });
     }
@@ -249,6 +253,7 @@ public class SketchView extends FrameLayout {
             @Override
             public void onAnimationUpdate(ValueAnimator animation) {
                 canvasView.setTranslationX((float)animation.getAnimatedValue());
+                SketchView.this.invalidate();
             }
         });
         vaX.start();
@@ -261,6 +266,7 @@ public class SketchView extends FrameLayout {
             @Override
             public void onAnimationUpdate(ValueAnimator animation) {
                 canvasView.setTranslationY((float)animation.getAnimatedValue());
+                SketchView.this.invalidate();
             }
         });
         vaY.start();
@@ -277,6 +283,24 @@ public class SketchView extends FrameLayout {
             }
         });
         vaScale.start();
+    }
+
+    @Override
+    protected void onDraw(Canvas canvas) {
+        super.onDraw(canvas);
+        float containerW = getWidth(), containerH = getHeight();
+        float scale = canvasView.getScaleX();
+        if (scale > 1) {
+            float transXLimit = (scale - 1) * containerW / 2;
+            float scrollBarLength = containerW / scale;
+            // transX的范围是从-transXlimit到transXlimit。scrollBar的范围是0到2f/scale倍的transXlimit。
+            //float scrollBarLeft = (transXLimit - canvasView.getTranslationX())/2f * (2f/scale);
+            float scrollBarLeft = (transXLimit - canvasView.getTranslationX()) / scale;
+            canvas.drawLine(scrollBarLeft, containerH - 2,
+                scrollBarLeft + scrollBarLength, containerH - 2, paintPen);
+        } else if (screenNum > 1) {
+
+        }
     }
 
     @Override
