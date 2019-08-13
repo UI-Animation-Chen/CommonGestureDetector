@@ -151,13 +151,15 @@ public class SketchView extends FrameLayout {
         twoFingersGestureDetector = new TwoFingersGestureDetector();
         twoFingersGestureDetector.setTwoFingersGestureListener(new TwoFingersGestureDetector.TwoFingersGestureListener() {
             @Override
-            public void onMoved(float moveX, float moveY, float deltaMovedX, float deltaMovedY, long deltaMilliseconds, int fingers) {
+            public void onMoved(float moveX, float moveY, float deltaMovedX, float deltaMovedY,
+                                long deltaMilliseconds, int fingers) {
                 if (isOperatingImage) {
                     float canvasViewScale = canvasView.getScaleX();
                     canvasView.imageMatrix.postTranslate(deltaMovedX/canvasViewScale, deltaMovedY/canvasViewScale);
                     canvasView.invalidate();
                     return;
                 }
+                cancelClampBoundsAnim();
                 float newTransX = canvasView.getTranslationX() + deltaMovedX;
 //                float transXlimit = (canvasView.getScaleX() - 1) * getWidth() / 2;
 //                if (Math.abs(newTransX) > transXlimit) {
@@ -191,6 +193,7 @@ public class SketchView extends FrameLayout {
                     canvasView.invalidate();
                     return;
                 }
+                cancelClampBoundsAnim();
                 float currScale = canvasView.getScaleX();
                 float deltaScale = deltaScaledDistance * currScale / getWidth(); // 已经放大后，distance也需要放大
                 currScale += deltaScale;
@@ -260,11 +263,26 @@ public class SketchView extends FrameLayout {
         }
     }
 
-    private final long animDuration = 250;
-    private DecelerateInterpolator interpolator = new DecelerateInterpolator();
+    private final long animDuration = 400;
+    private DecelerateInterpolator interpolator = new DecelerateInterpolator(1.8f);
+    private ValueAnimator vaX;
+    private ValueAnimator vaY;
+    private ValueAnimator vaScale;
+
+    private void cancelClampBoundsAnim() {
+        if (vaX != null && vaX.isRunning()) {
+            vaX.cancel();
+        }
+        if (vaY != null && vaY.isRunning()) {
+            vaY.cancel();
+        }
+        if (vaScale != null && vaScale.isRunning()) {
+            vaScale.cancel();
+        }
+    }
 
     private void animTransX(float start, float end) {
-        ValueAnimator vaX = ValueAnimator.ofFloat(start, end).setDuration(animDuration);
+        vaX = ValueAnimator.ofFloat(start, end).setDuration(animDuration);
         vaX.setInterpolator(interpolator);
         vaX.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
             @Override
@@ -277,7 +295,7 @@ public class SketchView extends FrameLayout {
     }
 
     private void animTransY(float start, float end) {
-        ValueAnimator vaY = ValueAnimator.ofFloat(start, end).setDuration(animDuration);
+        vaY = ValueAnimator.ofFloat(start, end).setDuration(animDuration);
         vaY.setInterpolator(interpolator);
         vaY.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
             @Override
@@ -290,7 +308,7 @@ public class SketchView extends FrameLayout {
     }
 
     private void animScale(float start) {
-        ValueAnimator vaScale = ValueAnimator.ofFloat(start, 1).setDuration(animDuration);
+        vaScale = ValueAnimator.ofFloat(start, 1).setDuration(animDuration);
         vaScale.setInterpolator(interpolator);
         vaScale.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
             @Override
