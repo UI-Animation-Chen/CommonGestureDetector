@@ -185,23 +185,20 @@ public class SketchView extends FrameLayout {
             @Override
             public void onScaled(float centerX, float centerY, float deltaScaledX, float deltaScaledY,
                                  float deltaScaledDistance, long deltaMilliseconds) {
-                float scaleFactor = canvasView.getScaleX();
-                scaleFactor += deltaScaledDistance * scaleFactor / canvasView.getWidth();
                 if (isOperatingImage) {
-                    float canvasViewScale = canvasView.getScaleX(); // 防止双倍缩放
-                    // 这里变换具有累加效果
-                    canvasView.imageMatrix.preScale(scaleFactor/canvasViewScale, scaleFactor/canvasViewScale);
+                    float imageScale = deltaScaledDistance / getWidth() + 1;
+                    canvasView.imageMatrix.preScale(imageScale, imageScale);
                     canvasView.invalidate();
                     return;
                 }
-//                if (scaleFactor < 1) {
-//                    scaleFactor = 1;
-//                }
-                if (scaleFactor > 5) {
-                    scaleFactor = 5;
+                float currScale = canvasView.getScaleX();
+                float deltaScale = deltaScaledDistance * currScale / getWidth(); // 已经放大后，distance也需要放大
+                currScale += deltaScale;
+                if (currScale > 5) {
+                    currScale = 5;
                 }
-                canvasView.setScaleX(scaleFactor);
-                canvasView.setScaleY(scaleFactor);
+                canvasView.setScaleX(currScale);
+                canvasView.setScaleY(currScale);
                 decorLayer.invalidate();
             }
 
