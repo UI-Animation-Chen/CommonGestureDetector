@@ -61,15 +61,27 @@ public class TwoFingersGestureDetector {
         }
     }
 
+    private void resetStatus() {
+        oldX = -1;
+        oldY = -1;
+        oldTanDeg = 0f;
+        oldScaledX = 0f;
+        oldScaledY = 0f;
+        old2FingersDistance = 0f;
+    }
+
     public boolean onTouchEvent(MotionEvent event) {
-        if (event.getPointerCount() > 2) {
+        if (!moreThan2Fingers && event.getPointerCount() > 2) {
             moreThan2Fingers = true;
             if (twoFingersGestureListener != null) {
                 twoFingersGestureListener.onCancel();
             }
+            resetStatus();
             longPressedHandler.removeCallbacksAndMessages(null);
         }
-        vt.addMovement(event);
+        if (!moreThan2Fingers) {
+            vt.addMovement(event);
+        }
         switch (event.getActionMasked()) {
             case MotionEvent.ACTION_DOWN:
                 if (inertialScrolling != null) {
@@ -170,17 +182,12 @@ public class TwoFingersGestureDetector {
                 }
                 break;
             case MotionEvent.ACTION_POINTER_UP:
-                oldX = -1; // 多指touch时有一指离开再按下，防止跳动。
-                oldY = -1;
-                oldTanDeg = 0f;
-                oldScaledX = 0f;
-                oldScaledY = 0f;
-                old2FingersDistance = 0f;
-                longPressedHandler.removeCallbacksAndMessages(null);
-
                 if (moreThan2Fingers) {
                     return true;
                 }
+
+                resetStatus(); // 多指touch时有一指离开再按下，防止跳动。
+                longPressedHandler.removeCallbacksAndMessages(null);
 
                 if (event.getActionIndex() == 0) {
                     oldX = event.getX(1);
@@ -190,19 +197,15 @@ public class TwoFingersGestureDetector {
                     oldY = event.getY(0);
                 }
                 break;
+            case MotionEvent.ACTION_CANCEL: // the same as action_up
             case MotionEvent.ACTION_UP:
-                oldX = -1;
-                oldY = -1;
-                oldTanDeg = 0f;
-                oldScaledX = 0f;
-                oldScaledY = 0f;
-                old2FingersDistance = 0f;
-                longPressedHandler.removeCallbacksAndMessages(null);
-
                 if (moreThan2Fingers) {
                     moreThan2Fingers = false;
                     return true;
                 }
+
+                resetStatus();
+                longPressedHandler.removeCallbacksAndMessages(null);
 
                 vt.computeCurrentVelocity(1000);
                 float yVelocity = vt.getYVelocity();

@@ -210,6 +210,12 @@ public class SketchView extends FrameLayout {
                 clampBoundsIfNeed();
                 decorLayer.invalidate();
             }
+
+            @Override
+            public void onCancel() {
+                clampBoundsIfNeed();
+                decorLayer.invalidate();
+            }
         });
     }
 
@@ -225,7 +231,7 @@ public class SketchView extends FrameLayout {
 
             float transYlimit = (canvasView.getScaleY() - 1) * screenNum * getHeight() / 2;
             float transY = canvasView.getTranslationY();
-            float transYNeedOffset = 0;
+            float transYNeedOffset;
             if (transY >= 0) {
                 transYNeedOffset = transY > transYlimit ? (transYlimit - transY) : 0;
             } else {
@@ -301,8 +307,7 @@ public class SketchView extends FrameLayout {
 
     @Override
     public boolean onTouchEvent(MotionEvent event) {
-        twoFingersGestureDetector.onTouchEvent(event);
-        return true;
+        return twoFingersGestureDetector.onTouchEvent(event);
     }
 
     @Override
