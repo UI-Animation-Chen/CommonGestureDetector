@@ -151,6 +151,7 @@ public class SketchView extends FrameLayout {
 
     private void setGestureDetector() {
         twoFingersGestureDetector = new TwoFingersGestureDetector();
+        twoFingersGestureDetector.enableInertialScrolling();
         twoFingersGestureDetector.setTwoFingersGestureListener(new TwoFingersGestureDetector.TwoFingersGestureListener() {
             @Override
             public void onMoved(float moveX, float moveY, float deltaMovedX, float deltaMovedY,
@@ -216,6 +217,34 @@ public class SketchView extends FrameLayout {
             public void onCancel() {
                 touchEnd();
             }
+
+            @Override
+            public void onInertialScrolling(float deltaMovedX, float deltaMovedY) {
+                if (isOperatingImage) return;
+
+                float newTransX = canvasView.getTranslationX() + deltaMovedX;
+                float transXlimit = (canvasView.getScaleX() - 1) * getWidth() / 2;
+                if (Math.abs(newTransX) > transXlimit) {
+                    newTransX = newTransX > 0 ? transXlimit : -transXlimit;
+                }
+                canvasView.setTranslationX(newTransX);
+                float newTransY = canvasView.getTranslationY() + deltaMovedY;
+                float transYlimit = (canvasView.getScaleY() - 1) * screenNum * getHeight() / 2;
+                float multiScreenTransYlimit = 0;
+                if (newTransY >= 0) {
+                    newTransY = newTransY > transYlimit ? transYlimit : newTransY;
+                } else {
+                    multiScreenTransYlimit = transYlimit + (screenNum-1) * getHeight();
+                    newTransY = -newTransY > multiScreenTransYlimit ? -multiScreenTransYlimit : newTransY;
+                }
+                canvasView.setTranslationY(newTransY);
+                if ((newTransX == transXlimit || newTransX == -transXlimit) &&
+                    (newTransY == transYlimit || newTransY == -multiScreenTransYlimit)) {
+                    return;
+                }
+                decorLayer.showScrollBar();
+                decorLayer.disappearScrollBarDelayed();
+            }
         });
     }
 
@@ -223,6 +252,7 @@ public class SketchView extends FrameLayout {
         if (!clampBoundsIfNeed()) {
             decorLayer.disappearScrollBarDelayed();
         } else {
+            twoFingersGestureDetector.stopInertialScrolling();
             new Handler().postDelayed(new Runnable() {
                 @Override
                 public void run() {

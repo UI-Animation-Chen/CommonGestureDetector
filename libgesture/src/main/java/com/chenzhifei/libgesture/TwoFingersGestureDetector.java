@@ -84,9 +84,8 @@ public class TwoFingersGestureDetector {
         }
         switch (event.getActionMasked()) {
             case MotionEvent.ACTION_DOWN:
-                if (inertialScrolling != null) {
-                    inertialScrolling.stopInertialScrolling();
-                }
+                stopInertialScrolling();
+
                 oldX = event.getX(0);
                 oldY = event.getY(0);
                 oldTimestamp = event.getDownTime();
@@ -116,9 +115,7 @@ public class TwoFingersGestureDetector {
                 }
 
                 if (oldX == -1) { // 从move才开始接收事件，这里当down事件处理。
-                    if (inertialScrolling != null) {
-                        inertialScrolling.stopInertialScrolling();
-                    }
+                    stopInertialScrolling();
 
                     if (event.getPointerCount() == 2) {
                         oldX = (event.getX(0) + event.getX(1)) / 2f;
@@ -212,12 +209,11 @@ public class TwoFingersGestureDetector {
                 float xVelocity = vt.getXVelocity();
                 vt.clear();
 
-                if (twoFingersGestureListener != null) {
-                    twoFingersGestureListener.onUp(oldX, oldY, oldTimestamp, xVelocity, yVelocity);
-                }
-
                 if (inertialScrolling != null) {
-                    inertialScrolling.updateXYVelocity(xVelocity, yVelocity);
+                    inertialScrolling.updateXYVelocityAsync(xVelocity, yVelocity);
+                }
+                if (twoFingersGestureListener != null) { // onUp放后面，外界有机会可以取消inertialScrolling。
+                    twoFingersGestureListener.onUp(oldX, oldY, oldTimestamp, xVelocity, yVelocity);
                 }
                 break;
         }
@@ -316,6 +312,12 @@ public class TwoFingersGestureDetector {
          * invoked when more than 2 findgers
          */
         public void onCancel() {}
+    }
+
+    public void stopInertialScrolling() {
+        if (inertialScrolling != null) {
+            inertialScrolling.stopInertialScrolling();
+        }
     }
 
     private TwoFingersGestureListener twoFingersGestureListener;

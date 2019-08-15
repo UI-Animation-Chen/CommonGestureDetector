@@ -23,6 +23,12 @@ public class InertialScrolling {
         inertialHandler.removeCallbacksAndMessages(null);
     }
 
+    public void updateXYVelocityAsync(float xVelocity, float yVelocity) {
+        currXVelocity = xVelocity;
+        currYVelocity = yVelocity;
+        inertialHandler.sendEmptyMessage(0);
+    }
+
     public void updateXYVelocity(float xVelocity, float yVelocity) {
         if (xVelocity == 0 && yVelocity == 0) {
             return;
