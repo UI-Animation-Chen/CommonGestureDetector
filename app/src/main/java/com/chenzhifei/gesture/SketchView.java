@@ -12,6 +12,7 @@ import android.graphics.Path;
 import android.graphics.PorterDuff;
 import android.graphics.PorterDuffXfermode;
 import android.os.Environment;
+import android.os.Handler;
 import android.support.v7.widget.AppCompatImageView;
 import android.util.AttributeSet;
 import android.view.MotionEvent;
@@ -117,7 +118,8 @@ public class SketchView extends FrameLayout {
         FrameLayout.LayoutParams p = (FrameLayout.LayoutParams)canvasView.getLayoutParams();
         p.height = this.getHeight() * screenNum;
         canvasView.setLayoutParams(p);
-        decorLayer.invalidate();
+        decorLayer.showScrollBar();
+        decorLayer.disappearScrollBarDelayed();
     }
 
     public boolean setOperatingImage() {
@@ -176,7 +178,7 @@ public class SketchView extends FrameLayout {
 //                }
                 canvasView.setTranslationX(newTransX);
                 canvasView.setTranslationY(newTransY);
-                decorLayer.invalidate();
+                decorLayer.showScrollBar();
             }
 
             @Override
@@ -202,24 +204,36 @@ public class SketchView extends FrameLayout {
                 }
                 canvasView.setScaleX(currScale);
                 canvasView.setScaleY(currScale);
-                decorLayer.invalidate();
+                decorLayer.showScrollBar();
             }
 
             @Override
             public void onUp(float upX, float upY, long upTime, float xVelocity, float yVelocity) {
-                clampBoundsIfNeed();
-                decorLayer.invalidate();
+                touchEnd();
             }
 
             @Override
             public void onCancel() {
-                clampBoundsIfNeed();
-                decorLayer.invalidate();
+                touchEnd();
             }
         });
     }
 
-    private void clampBoundsIfNeed() {
+    private void touchEnd() {
+        if (!clampBoundsIfNeed()) {
+            decorLayer.disappearScrollBarDelayed();
+        } else {
+            new Handler().postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    decorLayer.disappearScrollBarDelayed();
+                }
+            }, animDuration + 100); // +100容错
+        }
+    }
+
+    private boolean clampBoundsIfNeed() {
+        boolean needClamp = false;
         float scaleFactor = canvasView.getScaleX();
         if (scaleFactor >= 1) {
             float transXlimit = (canvasView.getScaleX() - 1) * getWidth() / 2;
@@ -241,12 +255,15 @@ public class SketchView extends FrameLayout {
 
             if (transXNeedOffset != 0) {
                 animTransX(transX, transX + transXNeedOffset);
+                needClamp = true;
             }
             if (transYNeedOffset != 0) {
                 animTransY(transY, transY + transYNeedOffset);
+                needClamp = true;
             }
         } else {
             animScale(canvasView.getScaleX());
+            needClamp = true;
             float transX = canvasView.getTranslationX();
             if (transX != 0) {
                 animTransX(transX, 0);
@@ -261,6 +278,7 @@ public class SketchView extends FrameLayout {
                 }
             }
         }
+        return needClamp;
     }
 
     private final long animDuration = 400;
@@ -284,11 +302,12 @@ public class SketchView extends FrameLayout {
     private void animTransX(float start, float end) {
         vaX = ValueAnimator.ofFloat(start, end).setDuration(animDuration);
         vaX.setInterpolator(interpolator);
+        vaX.removeAllUpdateListeners();
         vaX.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
             @Override
             public void onAnimationUpdate(ValueAnimator animation) {
                 canvasView.setTranslationX((float)animation.getAnimatedValue());
-                decorLayer.invalidate();
+                decorLayer.showScrollBar();
             }
         });
         vaX.start();
@@ -297,11 +316,12 @@ public class SketchView extends FrameLayout {
     private void animTransY(float start, float end) {
         vaY = ValueAnimator.ofFloat(start, end).setDuration(animDuration);
         vaY.setInterpolator(interpolator);
+        vaY.removeAllUpdateListeners();
         vaY.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
             @Override
             public void onAnimationUpdate(ValueAnimator animation) {
                 canvasView.setTranslationY((float)animation.getAnimatedValue());
-                decorLayer.invalidate();
+                decorLayer.showScrollBar();
             }
         });
         vaY.start();
@@ -310,6 +330,7 @@ public class SketchView extends FrameLayout {
     private void animScale(float start) {
         vaScale = ValueAnimator.ofFloat(start, 1).setDuration(animDuration);
         vaScale.setInterpolator(interpolator);
+        vaScale.removeAllUpdateListeners();
         vaScale.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
             @Override
             public void onAnimationUpdate(ValueAnimator animation) {
@@ -462,6 +483,13 @@ public class SketchView extends FrameLayout {
         private final int scrollBarWidth1_2 = scrollBarWidth / 2;
         private final int scrollBarMargin = 5;
 
+        private ValueAnimator vaAlpha;
+        private int delayTime = 400;
+        private int alphaAnimDuration = 300;
+        private final int SCROLL_BAR_ALPHA = 100;
+        private boolean enableScrollBar = false;
+        private Handler scrollBarHandler = new Handler();
+
         public DecorLayer(Context context) {
             this(context, null);
         }
@@ -473,7 +501,8 @@ public class SketchView extends FrameLayout {
         public DecorLayer(Context context, AttributeSet attrs, int defStyle) {
             super(context, attrs, defStyle);
             setBackgroundColor(Color.TRANSPARENT);
-            scrollBarPaint.setColor(Color.parseColor("#66000000"));
+            scrollBarPaint.setColor(Color.BLACK);
+            scrollBarPaint.setAlpha(SCROLL_BAR_ALPHA);
             scrollBarPaint.setStyle(Paint.Style.STROKE);
             scrollBarPaint.setStrokeCap(Paint.Cap.ROUND);
             scrollBarPaint.setStrokeWidth(scrollBarWidth);
@@ -482,6 +511,7 @@ public class SketchView extends FrameLayout {
         @Override
         protected void onDraw(Canvas canvas) {
             super.onDraw(canvas);
+            if (!enableScrollBar) return;
             float containerW = getWidth(), containerH = getHeight();
             float scale = canvasView.getScaleX();
             if (scale > 1) { // draw horizontal scroll bar
@@ -528,6 +558,49 @@ public class SketchView extends FrameLayout {
                   containerW - (scrollBarWidth1_2 + scrollBarMargin), scrollBarBottom, scrollBarPaint);
             }
         }
+
+        private void disappearScrollBarAnim() {
+            vaAlpha = ValueAnimator.ofInt(100, 0).setDuration(alphaAnimDuration);
+            vaAlpha.removeAllUpdateListeners();
+            vaAlpha.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
+                @Override
+                public void onAnimationUpdate(ValueAnimator animation) {
+                    int alpha = (int)animation.getAnimatedValue();
+                    if (alpha <= 10) { // 容错
+                        vaAlpha.cancel();
+                        scrollBarPaint.setAlpha(SCROLL_BAR_ALPHA);
+                        enableScrollBar = false;
+                        invalidate();
+                    } else {
+                        scrollBarPaint.setAlpha(alpha);
+                        enableScrollBar = true;
+                        invalidate();
+                    }
+                }
+            });
+            vaAlpha.start();
+        }
+
+        public void disappearScrollBarDelayed() {
+            scrollBarHandler.removeCallbacksAndMessages(null);
+            scrollBarHandler.postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    disappearScrollBarAnim();
+                }
+            }, delayTime);
+        }
+
+        public void showScrollBar() {
+            if (vaAlpha.isRunning()) {
+                vaAlpha.cancel();
+            }
+            scrollBarHandler.removeCallbacksAndMessages(null);
+            decorLayer.enableScrollBar = true;
+            scrollBarPaint.setAlpha(SCROLL_BAR_ALPHA);
+            decorLayer.invalidate();
+        }
+
     }
 
     public void saveToJPG() {
