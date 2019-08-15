@@ -67,7 +67,7 @@ public class SketchView extends FrameLayout {
     }
 
     private void addCanvasView(Context context) {
-        setBackgroundColor(Color.DKGRAY);
+        setBackgroundColor(Color.LTGRAY);
         canvasView = new CanvasView(context);
         canvasView.setBackgroundColor(Color.WHITE);
         addView(canvasView);
@@ -264,7 +264,7 @@ public class SketchView extends FrameLayout {
     }
 
     private final long animDuration = 400;
-    private DecelerateInterpolator interpolator = new DecelerateInterpolator(1.8f);
+    private DecelerateInterpolator interpolator = new DecelerateInterpolator(2f);
     private ValueAnimator vaX;
     private ValueAnimator vaY;
     private ValueAnimator vaScale;
@@ -458,6 +458,9 @@ public class SketchView extends FrameLayout {
     private class DecorLayer extends View {
 
         private Paint scrollBarPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final int scrollBarWidth = 8;
+        private final int scrollBarWidth1_2 = scrollBarWidth / 2;
+        private final int scrollBarMargin = 5;
 
         public DecorLayer(Context context) {
             this(context, null);
@@ -470,10 +473,10 @@ public class SketchView extends FrameLayout {
         public DecorLayer(Context context, AttributeSet attrs, int defStyle) {
             super(context, attrs, defStyle);
             setBackgroundColor(Color.TRANSPARENT);
-            scrollBarPaint.setColor(Color.LTGRAY);
+            scrollBarPaint.setColor(Color.parseColor("#66000000"));
             scrollBarPaint.setStyle(Paint.Style.STROKE);
             scrollBarPaint.setStrokeCap(Paint.Cap.ROUND);
-            scrollBarPaint.setStrokeWidth(5);
+            scrollBarPaint.setStrokeWidth(scrollBarWidth);
         }
 
         @Override
@@ -487,16 +490,42 @@ public class SketchView extends FrameLayout {
                 // transX的范围是从-transXlimit到transXlimit。scrollBar的范围是0到2f/scale倍的transXlimit。
                 //float scrollBarLeft = (transXLimit - canvasView.getTranslationX())/2f * (2f/scale);
                 float scrollBarLeft = (transXlimit - canvasView.getTranslationX()) / scale;
-                canvas.drawLine(scrollBarLeft, containerH - 3,
-                  scrollBarLeft + scrollBarLength, containerH - 3, scrollBarPaint);
+                float scrollBarRight = scrollBarLeft + scrollBarLength;
+                if (scrollBarLeft < scrollBarWidth1_2 + scrollBarMargin) {
+                    scrollBarLeft = scrollBarWidth1_2 + scrollBarMargin;
+                }
+                if (scrollBarLeft > containerW - scrollBarWidth1_2 - scrollBarMargin) {
+                    scrollBarLeft = containerW - scrollBarWidth1_2 - scrollBarMargin;
+                }
+                if (scrollBarRight < scrollBarWidth1_2  + scrollBarMargin) {
+                    scrollBarRight = scrollBarWidth1_2 + scrollBarMargin + .1f;
+                }
+                if (scrollBarRight > containerW - scrollBarWidth1_2) {
+                    scrollBarRight = containerW - scrollBarWidth1_2 - scrollBarMargin + .1f;
+                }
+                canvas.drawLine(scrollBarLeft, containerH - (scrollBarWidth1_2 + scrollBarMargin),
+                    scrollBarRight, containerH - (scrollBarWidth1_2 + scrollBarMargin), scrollBarPaint);
             }
             float canvasH = scale * canvasView.getHeight();
             if (canvasH > containerH) { // draw vertical scroll bar
                 float transYlimit = (canvasH - canvasView.getHeight()) / 2f;
                 float scrollBarLength = containerH * containerH / canvasH;
                 float scrollBarTop = (transYlimit - canvasView.getTranslationY()) * containerH / canvasH;
-                canvas.drawLine(containerW - 3, scrollBarTop,
-                  containerW - 3, scrollBarTop + scrollBarLength, scrollBarPaint);
+                float scrollBarBottom = scrollBarTop + scrollBarLength;
+                if (scrollBarTop < scrollBarWidth1_2 + scrollBarMargin) {
+                    scrollBarTop = scrollBarWidth1_2 + scrollBarMargin;
+                }
+                if (scrollBarTop > containerH - scrollBarWidth1_2 - scrollBarMargin) {
+                    scrollBarTop = containerH - scrollBarWidth1_2 - scrollBarMargin;
+                }
+                if (scrollBarBottom < scrollBarWidth1_2 + scrollBarMargin) {
+                    scrollBarBottom = scrollBarWidth1_2 + scrollBarMargin + .1f;
+                }
+                if (scrollBarBottom > containerH - scrollBarWidth1_2 - scrollBarMargin) {
+                    scrollBarBottom = containerH - scrollBarWidth1_2 - scrollBarMargin + .1f;
+                }
+                canvas.drawLine(containerW - (scrollBarWidth1_2 + scrollBarMargin), scrollBarTop,
+                  containerW - (scrollBarWidth1_2 + scrollBarMargin), scrollBarBottom, scrollBarPaint);
             }
         }
     }
