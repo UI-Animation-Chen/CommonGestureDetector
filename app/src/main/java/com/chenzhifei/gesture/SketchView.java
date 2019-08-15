@@ -35,8 +35,8 @@ public class SketchView extends FrameLayout {
     public static final int LINE_MODE_RUBBER = 3;
 
     private int lineMode = LINE_MODE_CURVE;
-    private int screenNum = 1;
-    private int maxScreens = 3;
+    private float screenNum = 1;
+    private float maxScreens = 3;
     private boolean isOperatingImage = true;
 
     private CanvasView canvasView;
@@ -114,9 +114,9 @@ public class SketchView extends FrameLayout {
         if (screenNum >= maxScreens) {
             return;
         }
-        screenNum++;
+        screenNum += 0.5f;
         FrameLayout.LayoutParams p = (FrameLayout.LayoutParams)canvasView.getLayoutParams();
-        p.height = this.getHeight() * screenNum;
+        p.height = (int)(this.getHeight() * screenNum);
         canvasView.setLayoutParams(p);
         decorLayer.showScrollBar();
         decorLayer.disappearScrollBarDelayed();
