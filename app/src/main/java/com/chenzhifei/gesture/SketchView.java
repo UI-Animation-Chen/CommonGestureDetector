@@ -46,6 +46,7 @@ public class SketchView extends FrameLayout {
     private float paintPenWidth = 2;
     private Paint paintRubber;
     private float paintRubberWidth = 50;
+    private DashPathEffect dashPathEffect = new DashPathEffect(new float[]{4, 8}, 0);
 
     private DecorLayer decorLayer;
 
@@ -110,6 +111,14 @@ public class SketchView extends FrameLayout {
         this.maxScreens = maxScreens;
     }
 
+    public void setDashPathEffect(boolean dashPath) {
+        if (dashPath) {
+            paintPen.setPathEffect(dashPathEffect);
+        } else {
+            paintPen.setPathEffect(null);
+        }
+    }
+
     public void addScreenNum() {
         if (screenNum >= maxScreens) {
             return;
@@ -143,6 +152,7 @@ public class SketchView extends FrameLayout {
         paintPen.setStrokeWidth(paintPenWidth);
         paintPen.setStrokeCap(Paint.Cap.ROUND);
         paintPen.setStrokeJoin(Paint.Join.ROUND);
+        paintPen.setPathEffect(null);
 
         paintRubber = new Paint(Paint.ANTI_ALIAS_FLAG);
         paintRubber.setAlpha(0);
@@ -419,7 +429,7 @@ public class SketchView extends FrameLayout {
 
         private Bitmap sketchBitmap;
         private Canvas sketchCanvas;
-        private Paint sketchPaint = new Paint();
+
         private Paint rubberTipPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         private int rubberTipColor, rubberBoundsColor;
         private float moveX, moveY;
@@ -470,7 +480,7 @@ public class SketchView extends FrameLayout {
                     sketchCanvas.drawLine(p.lineStart[0], p.lineStart[1], p.lineEnd[0], p.lineEnd[1], paintPen);
                 }
             }
-            canvas.drawBitmap(sketchBitmap, 0, 0, sketchPaint);
+            canvas.drawBitmap(sketchBitmap, 0, 0, null);
             if (lineMode == LINE_MODE_RUBBER && moveX != -1) {
                 rubberTipPaint.setColor(rubberBoundsColor);
                 canvas.drawCircle(moveX, moveY, paintRubberWidth/2, rubberTipPaint);
