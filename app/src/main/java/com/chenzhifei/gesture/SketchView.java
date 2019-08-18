@@ -220,7 +220,10 @@ public class SketchView extends FrameLayout {
 
             @Override
             public void onInertialScrolling(float deltaMovedX, float deltaMovedY) {
-                if (isOperatingImage) return;
+                if (isOperatingImage) {
+                    twoFingersGestureDetector.stopInertialScrolling();
+                    return;
+                }
 
                 float newTransX = canvasView.getTranslationX() + deltaMovedX;
                 float transXlimit = (canvasView.getScaleX() - 1) * getWidth() / 2;
@@ -252,13 +255,13 @@ public class SketchView extends FrameLayout {
         if (!clampBoundsIfNeed()) {
             decorLayer.disappearScrollBarDelayed();
         } else {
-            twoFingersGestureDetector.stopInertialScrolling();
+            //twoFingersGestureDetector.stopInertialScrolling();
             new Handler().postDelayed(new Runnable() {
                 @Override
                 public void run() {
                     decorLayer.disappearScrollBarDelayed();
                 }
-            }, animDuration + 100); // +100容错
+            }, animDuration + 100); // +100容错，保证动画已执行完
         }
     }
 
