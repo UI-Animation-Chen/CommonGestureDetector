@@ -625,7 +625,7 @@ public class SketchView extends FrameLayout {
         }
 
         public void showScrollBar() {
-            if (vaAlpha.isRunning()) {
+            if (vaAlpha != null && vaAlpha.isRunning()) {
                 vaAlpha.cancel();
             }
             scrollBarHandler.removeCallbacksAndMessages(null);
