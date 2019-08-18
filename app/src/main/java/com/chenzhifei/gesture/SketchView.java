@@ -118,6 +118,10 @@ public class SketchView extends FrameLayout {
         FrameLayout.LayoutParams p = (FrameLayout.LayoutParams)canvasView.getLayoutParams();
         p.height = (int)(this.getHeight() * screenNum);
         canvasView.setLayoutParams(p);
+        if (canvasView.getScaleX() > 1) { // 增加高度时，防止内容偏移。
+            float transYoffset = this.getHeight() * .25f * (canvasView.getScaleX() - 1);
+            canvasView.setTranslationY(canvasView.getTranslationY() + transYoffset);
+        }
         decorLayer.showScrollBar();
         decorLayer.disappearScrollBarDelayed();
     }
