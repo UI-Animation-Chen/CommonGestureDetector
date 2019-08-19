@@ -204,7 +204,7 @@ public class TwoFingersGestureDetector {
                 resetStatus();
                 longPressedHandler.removeCallbacksAndMessages(null);
 
-                vt.computeCurrentVelocity(1000);
+                vt.computeCurrentVelocity(1000); // 1000表示pixels/second
                 float yVelocity = vt.getYVelocity();
                 float xVelocity = vt.getXVelocity();
                 vt.clear();
@@ -212,7 +212,7 @@ public class TwoFingersGestureDetector {
                 if (inertialScrolling != null) {
                     inertialScrolling.updateXYVelocityAsync(xVelocity, yVelocity);
                 }
-                if (twoFingersGestureListener != null) { // onUp放后面，外界有机会可以取消inertialScrolling。
+                if (twoFingersGestureListener != null) { // onUp放后面，外界有机会取消inertialScrolling。
                     twoFingersGestureListener.onUp(oldX, oldY, oldTimestamp, xVelocity, yVelocity);
                 }
                 break;
