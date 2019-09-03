@@ -462,6 +462,11 @@ public class SketchView extends FrameLayout {
             super.onSizeChanged(w, h, oldw, oldh);
             sketchBitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
             sketchCanvas = new Canvas(sketchBitmap);
+            if (canvasView.getWidth() != canvasView.imageW) {
+                float imgScale = (float) canvasView.getWidth() / (float)canvasView.imageW;
+                canvasView.imageMatrix.preScale(imgScale, imgScale);
+                canvasView.invalidate();
+            }
         }
 
         @Override
@@ -654,6 +659,28 @@ public class SketchView extends FrameLayout {
         Bitmap bp = Bitmap.createBitmap(canvasView.getWidth(), canvasView.getHeight(), Bitmap.Config.RGB_565);
         Canvas canvas = new Canvas(bp);
         canvasView.draw(canvas);
+        int drawedHeight = canvasView.getHeight() - 1;
+        for (int i = drawedHeight; i >= 0; i--) {
+            boolean isBlackLine = true;
+            for (int j = 0; j < canvasView.getWidth(); j++) {
+                if (bp.getPixel(j, i) != -1) { // -1的二进制位全是1，表示ff ff ff ff。
+                    isBlackLine = false;
+                    break;
+                }
+            }
+            if (!isBlackLine) {
+                drawedHeight = i;
+                break;
+            }
+        }
+        if (drawedHeight != canvasView.getHeight()) {
+            if (canvasView.getHeight() - drawedHeight >= 5) {
+                drawedHeight += 5;
+            } else {
+                drawedHeight = canvasView.getHeight();
+            }
+            bp = Bitmap.createBitmap(bp, 0, 0, bp.getWidth(), drawedHeight);
+        }
         String jpgName = "jiandan100Sketch.jpg";
         File jpgFile = new File(Environment.getExternalStorageDirectory().getAbsolutePath()
                 + File.separator + jpgName);
