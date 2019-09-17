@@ -123,12 +123,13 @@ public class SketchView extends FrameLayout {
         if (screenNum >= maxScreens) {
             return;
         }
-        screenNum += 0.5f;
+        float addedNums = 0.7f;
+        screenNum += addedNums;
         FrameLayout.LayoutParams p = (FrameLayout.LayoutParams)canvasView.getLayoutParams();
         p.height = (int)(this.getHeight() * screenNum);
         canvasView.setLayoutParams(p);
         if (canvasView.getScaleX() > 1) { // 增加高度时，防止内容偏移。
-            float transYoffset = this.getHeight() * .25f * (canvasView.getScaleX() - 1);
+            float transYoffset = this.getHeight() * addedNums/2 * (canvasView.getScaleX() - 1);
             canvasView.setTranslationY(canvasView.getTranslationY() + transYoffset);
         }
         decorLayer.showScrollBar();
@@ -460,12 +461,15 @@ public class SketchView extends FrameLayout {
         @Override
         protected void onSizeChanged(int w, int h, int oldw, int oldh) {
             super.onSizeChanged(w, h, oldw, oldh);
-            sketchBitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
-            sketchCanvas = new Canvas(sketchBitmap);
-            if (canvasView.getWidth() != canvasView.imageW) {
-                float imgScale = (float) canvasView.getWidth() / (float)canvasView.imageW;
-                canvasView.imageMatrix.preScale(imgScale, imgScale);
-                canvasView.invalidate();
+            if (sketchBitmap == null) { // 首次加载
+                sketchBitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
+                sketchCanvas = new Canvas(sketchBitmap);
+                sketchCanvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR);
+            } else { // 增加尺寸
+                Bitmap bm = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
+                sketchCanvas = new Canvas(bm);
+                sketchCanvas.drawBitmap(sketchBitmap, 0, 0, paintPen);
+                sketchBitmap = bm;
             }
         }
 
@@ -473,8 +477,9 @@ public class SketchView extends FrameLayout {
         protected void onDraw(Canvas canvas) {
             super.onDraw(canvas);
             setImageMatrix(imageMatrix);
-            sketchCanvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR);
-            for (PathWithConfig p: pathList) {
+            //for (PathWithConfig p: pathList) {
+            if (pathList.size() > 0) {
+                PathWithConfig p = pathList.get(pathList.size() - 1);
                 if (p.lineMode == LINE_MODE_RUBBER) {
                     sketchCanvas.drawPath(p.path, paintRubber);
                 } else if (p.lineMode == LINE_MODE_CURVE){
@@ -485,6 +490,7 @@ public class SketchView extends FrameLayout {
                     sketchCanvas.drawLine(p.lineStart[0], p.lineStart[1], p.lineEnd[0], p.lineEnd[1], paintPen);
                 }
             }
+            //}
             canvas.drawBitmap(sketchBitmap, 0, 0, null);
             if (lineMode == LINE_MODE_RUBBER && moveX != -1) {
                 rubberTipPaint.setColor(rubberBoundsColor);
